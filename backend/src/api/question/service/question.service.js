@@ -1,5 +1,5 @@
 import { safeExecute } from "../../../../db/config.js";
-import { NotFoundError } from "../../../../utils/errors.js";
+import { NotFoundError } from "../../../utils/errors/index.js";
 
 const buildQuestionFilters = (filters) => {
   const conditions = [];
@@ -138,37 +138,3 @@ export const getSingleQuestionService = async ({ questionHash }) => {
     answers: answerRows,
   };
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

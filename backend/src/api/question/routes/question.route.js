@@ -1,9 +1,11 @@
 import express from "express";
 import { authenticateUser } from "../../../middleware/authentication.js";
+
 import {
   getQuestionsController,
   getSingleQuestionController,
 } from "../controller/question.controller.js";
+
 import {
   getQuestionsValidation,
   getSingleQuestionValidation,
@@ -12,9 +14,19 @@ import {
 const router = express.Router();
 
 /**
- * @route GET /api/questions/:questionHash
- * @desc Get one question with answers
- * @access Private
+ * GET /api/questions
+ * List questions
+ */
+router.get(
+  "/",
+  authenticateUser,
+  getQuestionsValidation,
+  getQuestionsController,
+);
+
+/**
+ * GET /api/questions/:questionHash
+ * Get single question with answers
  */
 router.get(
   "/:questionHash",
