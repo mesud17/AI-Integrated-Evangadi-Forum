@@ -1,7 +1,14 @@
 import { GoogleGenAI } from '@google/genai';
 import { safeExecute } from '../../../../db/config.js';
+import { ServiceUnavailableError } from '../../../utils/errors/index.js';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Fail fast on startup if API key is missing
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+if (!GEMINI_API_KEY) {
+  throw new Error('GEMINI_API_KEY environment variable is required');
+}
+
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 export const getQuestionByHash = async (questionHash) => {
   const sql = `
@@ -43,9 +50,37 @@ Scoring guide:
     contents: prompt,
   });
 
-  const rawText = response.text.trim();
+  // Check if response is empty
+  const rawText = response.text?.trim();
+  if (!rawText) {
+    throw new ServiceUnavailableError('Gemini returned an empty response');
+  }
+
+  // Clean markdown code blocks if Gemini wraps response in them
   const cleaned = rawText.replace(/```json|```/g, '').trim();
-  const parsed = JSON.parse(cleaned);
+
+  // Parse safely
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (err) {
+    throw new ServiceUnavailableError(
+      'Gemini returned invalid JSON: ' + rawText.slice(0, 100)
+    );
+  }
+
+  // Validate the shape
+  if (
+    typeof parsed.score !== 'number' ||
+    parsed.score < 0 ||
+    parsed.score > 100 ||
+    typeof parsed.feedback !== 'string' ||
+    !parsed.feedback.trim()
+  ) {
+    throw new ServiceUnavailableError(
+      'Gemini response missing valid score or feedback'
+    );
+  }
 
   return {
     score: parsed.score,
