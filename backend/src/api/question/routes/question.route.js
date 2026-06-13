@@ -12,7 +12,7 @@ const router = express.Router();
  */
 router.get(
   '/:questionHash/similar',
-  authenticateUser,
+  // authenticateUser,
   getSimilarQuestionsValidation,
   getSimilarQuestionsController,
 );

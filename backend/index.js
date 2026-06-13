@@ -6,6 +6,17 @@ import cors from 'cors';
 const app = express();
 const port = process.env.PORT || 3777;
 
+const validateEnv = () => {
+  const required = ['JWT_SECRET', 'DB_HOST', 'DB_USER', 'DB_PASSWORD'];
+  for (const env of required) {
+    if (!process.env[env]) {
+      throw new Error(`Missing required environment variable: ${env}`);
+    }
+  }
+};
+
+validateEnv();
+
 // Middleware
 app.use(cors());
 app.use(express.json());
