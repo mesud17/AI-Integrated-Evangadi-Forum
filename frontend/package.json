@@ -39,3 +39,4 @@
     "vitest": "^4.1.4"
   }
 }
+import React from 'react';
