@@ -11,14 +11,14 @@ export const normalizeQuestionText = ({ title }) => {
   return normalizeWhiteSpaces(`${title || ""}`.normalize("NFKC").toLowerCase());
 };
 
-// Vector Embedding/ source text alew and options store yaregal
+
 export const generateQuestionEmbedding = async (sourceText, options = {}) => {
-  // Our usecase for AI  embedding-001- Rerrival document for document search (ke questions ende web search endiyareg selemnfelg)
-  const { taskType = `RETRIEVAL_DOCUMENT ` } = options;
+  
+  const { taskType = "RETRIEVAL_DOCUMENT" } = options;
 
   try {
     const response = await ai.models.embedContent({
-      model: GEMINI_EMBEDDING_MODEL,
+      model: process.env.GEMINI_EMBEDDING_MODEL || "gemini-embedding-001",
       contents: sourceText,
       config: {
         taskType: taskType,
@@ -26,14 +26,14 @@ export const generateQuestionEmbedding = async (sourceText, options = {}) => {
       },
     });
 
-    // Embeddingun yemnagegnew values lay new- source gemini doc/ value[0.01233, -0,999]
+    
     const values = response.embeddings[0].values;
 
     if (!Array.isArray(values) || values.length === 0) {
       throw new Error("Gemini embedding response doesn't contain values");
     }
 
-    // return embedding yetebale object
+    
     return {
       embedding: values,
     };
@@ -50,7 +50,7 @@ const validateEmbedding = (embedding) => {
     throw new Error("Embedding can't be empty");
   }
 
-  if (!embedding.every((v) => typeof v === "number" && isNaN(v))) {
+  if (!embedding.every((v) => typeof v === "number" && !isNaN(v))) {
     throw new Error("Embedding must contain only valid numbers");
   }
 };
@@ -58,7 +58,7 @@ const validateEmbedding = (embedding) => {
 export const storeQuestionVector = async ({
   questionId,
   sourceText,
-  embedding: [],
+  embedding=[],
   status = "ready",
 }) => {
   if (status === "failed" || !embedding || embedding.length === 0) {
@@ -68,7 +68,7 @@ export const storeQuestionVector = async ({
     source_text=VALUES(source_text),
     embedding=VALUES(embedding),
     status=VALUES(status),
-    update_at=CURRENT_TIMESTAMP`;
+    updated_at=CURRENT_TIMESTAMP`;
 
     await safeExecute(sql, [
       questionId,

@@ -1,4 +1,4 @@
-import { body, query, param } from "express-validator";
+import {body} from "express-validator";
 import { validationErrorHandler } from "../../../middleware/validation-handler.js";
 
 export const createQuestionValidation = [

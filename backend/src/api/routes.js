@@ -10,4 +10,4 @@ mainRouter.use('/auth', authRoutes);
 
 //  /api/questions
 
-mainRouter.use("/questions", questionRoute);
+mainRouter.use('/questions', questionRoute);

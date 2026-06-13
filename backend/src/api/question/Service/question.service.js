@@ -5,7 +5,7 @@ import {
   NotFoundError,
 } from "../../../utils/errors/index.js";
 
-import { storeQuestionVector } from "../Service/vector.service.js"
+import { storeQuestionVector } from "./vector.service.js"
 import {
   normalizeQuestionText,
   generateQuestionEmbedding,
