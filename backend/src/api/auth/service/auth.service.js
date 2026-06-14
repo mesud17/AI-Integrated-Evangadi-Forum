@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { safeExecute } from '../../../../db/config.js';
 import {
   BadRequestError,
+  NotFoundError,
   UnauthenticatedError,
 } from '../../../utils/errors/index.js';
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -12,6 +13,18 @@ if (!JWT_SECRET) {
 }
 
 const normalizeEmail = email => email.trim().toLowerCase();
+
+const signFlowToken = (payload, expiresIn) => {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+};
+
+const verifyFlowToken = token => {
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch {
+    throw new BadRequestError('Invalid or expired token');
+  }
+};
 
 /**
  * Checks if a user exists by email.
@@ -68,11 +81,26 @@ export const registerService = async ({
     throw error;
   }
 
+  const confirmationToken = signFlowToken(
+    {
+      purpose: 'confirm-email',
+      userId: result.insertId,
+      email: normalizedEmail,
+    },
+    process.env.EMAIL_CONFIRM_EXPIRES_IN || '24h',
+  );
+
   return {
-    id: result.insertId,
-    firstName,
-    lastName,
-    email: normalizedEmail,
+    user: {
+      id: result.insertId,
+      firstName,
+      lastName,
+      email: normalizedEmail,
+    },
+    welcomeMessage: `Welcome ${firstName}! Your account was created successfully.`,
+    confirmationMessage:
+      'Please confirm your email to complete account setup.',
+    confirmationToken,
   };
 };
 
@@ -118,5 +146,89 @@ export const loginService = async ({ email, password }) => {
       email: user.email,
     },
     token,
+  };
+};
+
+export const confirmEmailService = async ({ token }) => {
+  const decoded = verifyFlowToken(token);
+
+  if (decoded.purpose !== 'confirm-email') {
+    throw new BadRequestError('Invalid confirmation token');
+  }
+
+  const rows = await safeExecute(
+    'SELECT user_id, email FROM users WHERE user_id = ? AND email = ? LIMIT 1',
+    [decoded.userId, normalizeEmail(decoded.email)],
+  );
+
+  if (!rows.length) {
+    throw new NotFoundError('User not found for this confirmation token');
+  }
+
+  return {
+    confirmed: true,
+    userId: decoded.userId,
+    email: normalizeEmail(decoded.email),
+  };
+};
+
+export const forgotPasswordService = async ({ email }) => {
+  const normalizedEmail = normalizeEmail(email);
+
+  const rows = await safeExecute(
+    'SELECT user_id, email FROM users WHERE email = ? LIMIT 1',
+    [normalizedEmail],
+  );
+
+  if (!rows.length) {
+    return {
+      sent: true,
+      resetToken: null,
+    };
+  }
+
+  const user = rows[0];
+  const resetToken = signFlowToken(
+    {
+      purpose: 'reset-password',
+      userId: user.user_id,
+      email: user.email,
+    },
+    process.env.PASSWORD_RESET_EXPIRES_IN || '15m',
+  );
+
+  return {
+    sent: true,
+    resetToken,
+  };
+};
+
+export const resetPasswordService = async ({ token, newPassword }) => {
+  const decoded = verifyFlowToken(token);
+
+  if (decoded.purpose !== 'reset-password') {
+    throw new BadRequestError('Invalid password reset token');
+  }
+
+  const normalizedEmail = normalizeEmail(decoded.email);
+  const rows = await safeExecute(
+    'SELECT user_id, email FROM users WHERE user_id = ? AND email = ? LIMIT 1',
+    [decoded.userId, normalizedEmail],
+  );
+
+  if (!rows.length) {
+    throw new NotFoundError('User not found for this reset token');
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+  await safeExecute(
+    'UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
+    [hashedPassword, decoded.userId],
+  );
+
+  return {
+    reset: true,
   };
 };
