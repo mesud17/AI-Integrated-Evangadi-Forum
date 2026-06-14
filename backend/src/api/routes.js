@@ -9,5 +9,4 @@ export const mainRouter = express.Router();
 mainRouter.use('/auth', authRoutes);
 
 //  /api/questions
-
 mainRouter.use('/questions', questionRoute);
