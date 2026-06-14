@@ -1,5 +1,68 @@
+import crypto from "crypto";
 import { safeExecute } from "../../../../db/config.js";
-import { NotFoundError } from "../../../utils/errors/index.js";
+import { BadRequestError, NotFoundError } from "../../../utils/errors/index.js";
+import {
+  generateQuestionEmbedding,
+  normalizeQuestionText,
+  storeQuestionVector,
+} from "../Service/vector.service.js";
+
+const generateQuestionHash = () => {
+  return crypto.randomBytes(8).toString("hex");
+};
+
+export const createQuestionWithVectorService = async ({ userId, title, content }) => {
+  if (!userId) {
+    throw new BadRequestError("User is required");
+  }
+
+  const questionHash = generateQuestionHash();
+
+  const insertQuestionSql = `
+    INSERT INTO questions (question_hash, user_id, title, content)
+    VALUES (?, ?, ?, ?)
+  `;
+
+  const insertResult = await safeExecute(insertQuestionSql, [
+    questionHash,
+    userId,
+    title,
+    content,
+  ]);
+
+  const questionId = insertResult.insertId;
+  const sourceText = normalizeQuestionText({ title });
+
+  try {
+    const { embedding } = await generateQuestionEmbedding(sourceText, {
+      taskType: "RETRIEVAL_DOCUMENT",
+    });
+
+    await storeQuestionVector({
+      questionId,
+      sourceText,
+      embedding,
+      status: "ready",
+    });
+  } catch {
+    await storeQuestionVector({
+      questionId,
+      sourceText,
+      embedding: [],
+      status: "failed",
+    });
+  }
+
+  return {
+    question: {
+      id: questionId,
+      questionHash,
+      title,
+      content,
+      userId,
+    },
+  };
+};
 
 const buildQuestionFilters = (filters) => {
   const conditions = [];
@@ -28,7 +91,6 @@ const buildQuestionFilters = (filters) => {
     params,
   };
 };
-
 export const getQuestionsService = async (filters = {}) => {
   const normalizedLimit = 100;
   const sortColumn = "q.created_at";
