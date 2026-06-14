@@ -1,9 +1,10 @@
 import { StatusCodes } from "http-status-codes";
-import { createQuestionWithVectorService } from "../Service/question.service.js";
 import {
+  createQuestionWithVectorService,
   getQuestionsService,
   getSingleQuestionService,
 } from "../service/question.service.js";
+import { generateQuestionDraftCoachService } from "../service/geminiTextCoach.service.js";
 
 /**
  * Handles listing questions with optional search filtering. Max 100 records.
@@ -49,6 +50,11 @@ export const getSingleQuestionController = async (req, res, next) => {
       success: true,
       message: "Question fetched successfully.",
       question: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const createQuestionController = async (req, res, next) => {
   try {
@@ -63,6 +69,27 @@ export const createQuestionController = async (req, res, next) => {
       success: true,
       message: "Question created successfully",
       data: result.question,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const generateQuestionDraftCoachController = async (req, res, next) => {
+  try {
+    const { title, content } = req.body;
+
+    const result = await generateQuestionDraftCoachService({
+      title,
+      content,
+    });
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Draft coach feedback generated successfully.",
+      feedback: result.feedback,
+      tips: result.suggestions || [],
+      suggestions: result.suggestions || [],
     });
   } catch (error) {
     next(error);

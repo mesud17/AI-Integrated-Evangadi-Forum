@@ -3,11 +3,7 @@ import { safeExecute } from "../../../../db/config.js";
 import { ServiceUnavailableError } from "../../../utils/errors/index.js";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-if (!GEMINI_API_KEY) {
-  throw new Error("GEMINI_API_KEY environment variable is required");
-}
-
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
 
 export const getQuestionByHash = async (questionHash) => {
   const sql = `
@@ -24,6 +20,12 @@ export const evaluateAnswerFit = async (
   questionBody,
   draftAnswer,
 ) => {
+  if (!ai) {
+    throw new ServiceUnavailableError(
+      "Answer fit service is not configured. Set GEMINI_API_KEY in backend/.env.",
+    );
+  }
+
   const prompt = `
 You are an expert evaluator for a community Q&A forum.
 A user has written a draft answer to the following question:

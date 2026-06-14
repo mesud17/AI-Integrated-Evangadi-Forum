@@ -1,14 +1,46 @@
 import express from "express";
 import { authenticateUser } from "../../../middleware/authentication.js";
-import { createQuestionValidation } from "../Validations/question.validation.js";
-import { createQuestionController } from "../controller/question.controller.js";
+import {
+  createQuestionValidation,
+  draftCoachValidation,
+  getQuestionsValidation,
+  getSingleQuestionValidation,
+} from "../validations/question.validation.js";
+import {
+  createQuestionController,
+  generateQuestionDraftCoachController,
+  getQuestionsController,
+  getSingleQuestionController,
+} from "../controller/question.controller.js";
 
 const questionRoute = express.Router();
+
+questionRoute.get(
+  "/",
+  authenticateUser,
+  getQuestionsValidation,
+  getQuestionsController,
+);
+
 questionRoute.post(
   "/",
   authenticateUser,
   createQuestionValidation,
   createQuestionController,
+);
+
+questionRoute.post(
+  "/draft-coach",
+  authenticateUser,
+  draftCoachValidation,
+  generateQuestionDraftCoachController,
+);
+
+questionRoute.get(
+  "/:questionHash",
+  authenticateUser,
+  getSingleQuestionValidation,
+  getSingleQuestionController,
 );
 
 export default questionRoute;
