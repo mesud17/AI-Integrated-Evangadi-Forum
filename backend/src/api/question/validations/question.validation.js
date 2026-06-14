@@ -1,26 +1,32 @@
-import { query } from 'express-validator';
-import { validationErrorHandler } from '../../../middleware/validation-handler.js';
+import { param, query } from "express-validator";
+import { validationErrorHandler } from "../../../middleware/validation-handler.js";
 
-export const searchQuestionsValidation = [
-  query('query')
-    .notEmpty()
-    .withMessage('Query is required')
+export const getQuestionsValidation = [
+  query("search")
+    .optional()
     .isString()
-    .withMessage('Query must be a string')
-    .isLength({ min: 5 })
-    .withMessage('Query must be at least 5 characters long'),
+    .withMessage("Search must be a string")
+    .trim(),
 
-  query('k')
+  query("mine")
     .optional()
-    .isInt({ min: 1, max: 20 })
-    .withMessage('k must be an integer between 1 and 20')
-    .toInt(),
+    .isBoolean()
+    .withMessage("Mine must be a boolean")
+    .toBoolean(),
 
-  query('threshold')
-    .optional()
-    .isFloat({ min: 0.0, max: 1.0 })
-    .withMessage('threshold must be a float between 0 and 1')
-    .toFloat(),
+  validationErrorHandler,
+];
+
+export const getSingleQuestionValidation = [
+  param("questionHash")
+    .notEmpty()
+    .withMessage("Question hash is required")
+    .bail()
+    .isString()
+    .withMessage("Question hash must be a string")
+    .bail()
+    .matches(/^[a-f0-9]{16}$/)
+    .withMessage("Question hash must be a 16-character lowercase hex string"),
 
   validationErrorHandler,
 ];
