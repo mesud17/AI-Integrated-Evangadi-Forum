@@ -1,20 +1,32 @@
-import { body } from 'express-validator';
-import { validationErrorHandler } from '../../../middleware/validation-handler.js';
+import { param, query } from "express-validator";
+import { validationErrorHandler } from "../../../middleware/validation-handler.js";
 
-export const generateQuestionDraftCoachValidation = [
-  body('title')
-    .optional({ values: 'falsy' })
+export const getQuestionsValidation = [
+  query("search")
+    .optional()
     .isString()
-    .withMessage('Title must be a string')
-    .isLength({ min: 5, max: 200 })
-    .withMessage('Title must be between 5 and 200 characters long'),
-  body('content')
+    .withMessage("Search must be a string")
+    .trim(),
+
+  query("mine")
+    .optional()
+    .isBoolean()
+    .withMessage("Mine must be a boolean")
+    .toBoolean(),
+
+  validationErrorHandler,
+];
+
+export const getSingleQuestionValidation = [
+  param("questionHash")
     .notEmpty()
-    .withMessage('Content is required')
+    .withMessage("Question hash is required")
+    .bail()
     .isString()
-    .withMessage('Content must be a string')
-    .isLength({ min: 20, max: 10000 })
-    .withMessage('Content must be between 20 and 10000 characters long'),
+    .withMessage("Question hash must be a string")
+    .bail()
+    .matches(/^[a-f0-9]{16}$/)
+    .withMessage("Question hash must be a 16-character lowercase hex string"),
 
   validationErrorHandler,
 ];
