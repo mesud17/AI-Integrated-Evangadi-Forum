@@ -1,72 +1,56 @@
 /**
- * Transactional email helper using Nodemailer.
+ * Transactional email helper using Resend API.
  *
- * In development (no EMAIL_HOST set): uses Ethereal Email — a free fake SMTP
- * service built into nodemailer. Emails are NOT delivered to real inboxes;
- * instead a preview URL is printed to the console so you can view them in a browser.
+ * Resend is a modern email delivery platform with a simple API.
+ * Set RESEND_API_KEY in .env to send emails.
  *
- * In production: set EMAIL_HOST, EMAIL_USER, EMAIL_PASS, EMAIL_FROM in .env
- * to use any real SMTP provider (Gmail, SendGrid, etc.)
+ * Documentation: https://resend.com/docs
  */
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-const {
-  EMAIL_HOST,
-  EMAIL_PORT = '587',
-  EMAIL_USER,
-  EMAIL_PASS,
-  EMAIL_FROM,
-} = process.env;
+const { RESEND_API_KEY, EMAIL_FROM } = process.env;
 
-// Lazily-created transporter (real or Ethereal)
-let transporter = null;
+let resend = null;
 
-async function getTransporter() {
-  if (transporter) return transporter;
-
-  if (EMAIL_HOST && EMAIL_USER && EMAIL_PASS) {
-    // Production: use real SMTP credentials from .env
-    transporter = nodemailer.createTransport({
-      host: EMAIL_HOST,
-      port: Number(EMAIL_PORT),
-      secure: Number(EMAIL_PORT) === 465,
-      auth: { user: EMAIL_USER, pass: EMAIL_PASS },
-    });
-  } else {
-    // Development: auto-create a free Ethereal test account — no credentials needed
-    const testAccount = await nodemailer.createTestAccount();
-    transporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: { user: testAccount.user, pass: testAccount.pass },
-    });
-    console.info('[mailer] Using Ethereal dev inbox:', testAccount.user);
+function getResendClient() {
+  if (!resend) {
+    if (!RESEND_API_KEY) {
+      throw new Error(
+        'RESEND_API_KEY is not set in .env. Please add your Resend API key.'
+      );
+    }
+    resend = new Resend(RESEND_API_KEY);
   }
-
-  return transporter;
+  return resend;
 }
 
 /**
- * Send an email. In dev mode prints a preview URL to the console.
+ * Send an email via Resend API.
  *
  * @param {{ to: string, subject: string, html: string, text?: string }} options
  */
 export async function sendMail({ to, subject, html, text }) {
-  const t = await getTransporter();
+  try {
+    const resendClient = getResendClient();
 
-  const info = await t.sendMail({
-    from: EMAIL_FROM || EMAIL_USER || 'Evangadi Forum <noreply@evangadi.com>',
-    to,
-    subject,
-    html,
-    text: text || html.replace(/<[^>]+>/g, ''),
-  });
+    const result = await resendClient.emails.send({
+      from: EMAIL_FROM || 'Evangadi Forum <onboarding@resend.dev>',
+      to,
+      subject,
+      html,
+      text: text || html.replace(/<[^>]+>/g, ''),
+    });
 
-  // In dev mode, log the Ethereal preview URL so you can view the email in a browser
-  const previewUrl = nodemailer.getTestMessageUrl(info);
-  if (previewUrl) {
-    console.info('[mailer] Preview email in browser →', previewUrl);
+    if (result.error) {
+      console.error('[mailer] Resend API error:', result.error);
+      throw new Error(`Email send failed: ${result.error.message}`);
+    }
+
+    console.info('[mailer] Email sent successfully:', result.data.id);
+    return result.data;
+  } catch (error) {
+    console.error('[mailer] Error sending email:', error.message);
+    throw error;
   }
 }
 
