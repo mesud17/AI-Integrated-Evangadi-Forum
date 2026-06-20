@@ -443,12 +443,17 @@ export const searchQuestionsSemanticService = async ({ query, k, threshold }) =>
 
   const normalizedText = normalizeQuestionText({ title: normalizedQuery });
 
-  // Embedding must come first; AI answer and DB fetch run in parallel after that
-  // to avoid hitting Gemini rate limits with two simultaneous requests.
-  const { embedding: queryEmbedding } = await generateQuestionEmbedding(normalizedText, {
-    taskType: "RETRIEVAL_QUERY",
-  });
+  // Attempt vector embedding. On failure (rate limit, network error) fall back to
+  // lexical search so the user still gets results instead of a 500.
+  let queryEmbedding = null;
+  try {
+    const result = await generateQuestionEmbedding(normalizedText, { taskType: "RETRIEVAL_QUERY" });
+    queryEmbedding = result.embedding;
+  } catch (embeddingErr) {
+    console.warn("[search] Embedding failed, using lexical fallback:", embeddingErr.message);
+  }
 
+  // Run AI answer and DB fetch in parallel (both are independent of each other).
   const vectorsSql = `
     SELECT qv.question_id AS questionId, qv.embedding
     FROM question_vectors qv
@@ -460,7 +465,8 @@ export const searchQuestionsSemanticService = async ({ query, k, threshold }) =>
     generateAIAnswer(normalizedQuery),
   ]);
 
-  if (vectorRows.length === 0) {
+  // If embedding failed or no vectors stored, fall back to keyword search.
+  if (!queryEmbedding || vectorRows.length === 0) {
     const fallbackData = await searchQuestionsLexicalFallback({ query: normalizedQuery, limit });
 
     return {
