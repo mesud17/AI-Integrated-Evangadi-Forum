@@ -3,6 +3,7 @@ import authRoutes from "./auth/routes/auth.routes.js";
 import answerRoutes from "./answer/routes/answer.routes.js";
 import questionRoutes from "./question/routes/question.routes.js";
 import answerFitRoutes from "./questions/routes/answer-fit.routes.js";
+import ragRoute from "./rag/routes/rag.routes.js";
 
 export const mainRouter = express.Router();
 
@@ -13,3 +14,5 @@ mainRouter.use("/answers", answerRoutes);
 //  /api/questions
 mainRouter.use("/questions", questionRoutes);
 mainRouter.use("/questions", answerFitRoutes);
+// RAG routes
+mainRouter.use("/rag", ragRoute);
