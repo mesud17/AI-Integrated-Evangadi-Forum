@@ -560,9 +560,10 @@ export default function RagDocuments() {
                           onChange={(e) => setAskQuery(e.target.value)}
                         />
                         <button
+                          type="button"
                           className={styles.queryBtn}
                           onClick={handleAskQuery}
-                          // disabled={!selected || askLoading || !askQuery.trim()}
+                          disabled={!selected || askLoading || !askQuery.trim()}
                         >
                           <svg
                             width="14"
