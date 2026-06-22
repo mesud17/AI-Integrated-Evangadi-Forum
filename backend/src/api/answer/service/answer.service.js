@@ -18,15 +18,13 @@ export const createAnswerService = async ({ questionId, content, userId }) => {
   );
 
   if (!questions || questions.length === 0) {
-    throw new NotFoundError("Question not found");
+    throw new NotFoundError("Question not found", "QUESTION_NOT_FOUND");
   }
 
   const question = questions[0];
 
-  // Prevent self-answering
-
   if (Number(question.user_id) === Number(userId)) {
-    throw new BadRequestError("You cannot answer your own question");
+    throw new BadRequestError("You cannot answer your own question", "SELF_ANSWER_NOT_ALLOWED");
   }
 
   // Insert answer — the UNIQUE KEY on (question_id, user_id) enforces
@@ -58,7 +56,7 @@ export const createAnswerService = async ({ questionId, content, userId }) => {
   } catch (err) {
     // MySQL duplicate-entry error: unique constraint on (question_id, user_id)
     if (err.code === "ER_DUP_ENTRY") {
-      throw new ConflictError("You have already answered this question");
+      throw new ConflictError("You have already answered this question", "ANSWER_ALREADY_EXISTS");
     }
     throw err;
   }

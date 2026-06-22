@@ -25,11 +25,14 @@ const signFlowToken = (payload, expiresIn) => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn });
 };
 
-const verifyFlowToken = token => {
+const verifyFlowToken = (token, { invalidCode, expiredCode }) => {
   try {
     return jwt.verify(token, JWT_SECRET);
-  } catch {
-    throw new BadRequestError('Invalid or expired token');
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      throw new BadRequestError('This link has expired. Please request a new one.', expiredCode);
+    }
+    throw new BadRequestError('This link is invalid or has already been used.', invalidCode);
   }
 };
 
@@ -88,7 +91,7 @@ export const registerService = async ({
   const normalizedEmail = normalizeEmail(email);
   const userExists = await checkUserExists(normalizedEmail);
   if (userExists) {
-    throw new BadRequestError('User already exists with this email.');
+    throw new BadRequestError('An account with this email address already exists.', 'EMAIL_ALREADY_REGISTERED');
   }
 
   const salt = await bcrypt.genSalt(10);
@@ -107,7 +110,7 @@ export const registerService = async ({
     ]);
   } catch (error) {
     if (error?.code === 'ER_DUP_ENTRY') {
-      throw new BadRequestError('User already exists with this email.');
+      throw new BadRequestError('An account with this email address already exists.', 'EMAIL_ALREADY_REGISTERED');
     }
     throw error;
   }
@@ -195,14 +198,14 @@ export const loginService = async ({ email, password }) => {
   const rows = await safeExecute(sql, [normalizedEmail]);
 
   if (rows.length === 0) {
-    throw new UnauthenticatedError('Invalid email or password');
+    throw new UnauthenticatedError('Invalid email or password', 'INVALID_CREDENTIALS');
   }
 
   const user = rows[0];
   const isMatch = await bcrypt.compare(password, user.password_hash);
 
   if (!isMatch) {
-    throw new UnauthenticatedError('Invalid email or password');
+    throw new UnauthenticatedError('Invalid email or password', 'INVALID_CREDENTIALS');
   }
 
   const verificationRows = await safeExecute(
@@ -217,7 +220,7 @@ export const loginService = async ({ email, password }) => {
       [user.user_id],
     );
   } else if (!Number(verificationRows[0].is_verified)) {
-    throw new UnauthenticatedError('Please confirm your email before signing in.');
+    throw new UnauthenticatedError('Please confirm your email before signing in.', 'EMAIL_NOT_CONFIRMED');
   }
 
   const payload = {
@@ -241,10 +244,13 @@ export const loginService = async ({ email, password }) => {
 
 export const confirmEmailService = async ({ token }) => {
 
-  const decoded = verifyFlowToken(token);
+  const decoded = verifyFlowToken(token, {
+    invalidCode: 'CONFIRM_TOKEN_INVALID',
+    expiredCode: 'CONFIRM_TOKEN_EXPIRED',
+  });
 
   if (decoded.purpose !== 'confirm-email') {
-    throw new BadRequestError('Invalid confirmation token');
+    throw new BadRequestError('This confirmation link is invalid or has already been used.', 'CONFIRM_TOKEN_INVALID');
   }
 
   const rows = await safeExecute(
@@ -253,7 +259,7 @@ export const confirmEmailService = async ({ token }) => {
   );
 
   if (!rows.length) {
-    throw new NotFoundError('User not found for this confirmation token');
+    throw new BadRequestError('This confirmation link is invalid or has already been used.', 'CONFIRM_TOKEN_INVALID');
   }
 
   await safeExecute(
@@ -316,10 +322,13 @@ export const forgotPasswordService = async ({ email }) => {
 };
 
 export const resetPasswordService = async ({ token, newPassword }) => {
-  const decoded = verifyFlowToken(token);
+  const decoded = verifyFlowToken(token, {
+    invalidCode: 'RESET_TOKEN_INVALID',
+    expiredCode: 'RESET_TOKEN_EXPIRED',
+  });
 
   if (decoded.purpose !== 'reset-password') {
-    throw new BadRequestError('Invalid password reset token');
+    throw new BadRequestError('This password reset link is invalid or has already been used.', 'RESET_TOKEN_INVALID');
   }
 
   const normalizedEmail = normalizeEmail(decoded.email);
@@ -329,7 +338,7 @@ export const resetPasswordService = async ({ token, newPassword }) => {
   );
 
   if (!rows.length) {
-    throw new NotFoundError('User not found for this reset token');
+    throw new BadRequestError('This password reset link is invalid or has already been used.', 'RESET_TOKEN_INVALID');
   }
 
   const salt = await bcrypt.genSalt(10);
