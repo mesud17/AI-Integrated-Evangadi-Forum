@@ -384,9 +384,11 @@ export default function RagDocuments() {
                       </span>
                     </button>
                     <button
+                      type="button"
                       className={styles.deleteBtn}
                       onClick={() => handleDelete(doc.document_id)}
                       title="Delete"
+                      aria-label="Delete document"
                     >
                       🗑️
                     </button>
