@@ -6,6 +6,7 @@ import answerFitRoutes from "./questions/routes/answer-fit.routes.js";
 import ragRoutes from "./rag/routes/rag.routes.js";
 import ragFileRoutes from "./rag/routes/rag-file.routes.js";
 import leaderboardRoutes from "./leaderboard/routes/leaderboard.routes.js";
+import userRoutes from "./users/routes/user.routes.js";
 
 export const mainRouter = express.Router();
 
@@ -26,3 +27,5 @@ mainRouter.use("/rag/documents", ragFileRoutes);
 
 // Leaderboard routes
 mainRouter.use("/leaderboard", leaderboardRoutes);
+// User profile routes
+mainRouter.use("/users", userRoutes);
