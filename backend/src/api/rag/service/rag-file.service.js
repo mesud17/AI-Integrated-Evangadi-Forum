@@ -21,7 +21,9 @@ export const getDocumentFileService = async ({ documentId, userId }) => {
     throw new NotFoundError("Document not found");
   }
 
-  if (!fs.existsSync(document.storagePath)) {
+  try {
+    await fs.promises.access(document.storagePath, fs.constants.R_OK);
+  } catch {
     throw new BadRequestError("Document file is missing from storage");
   }
 
