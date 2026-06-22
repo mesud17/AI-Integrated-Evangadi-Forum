@@ -4,12 +4,13 @@ import {
   NotFoundError,
   ConflictError,
 } from "../../../utils/errors/index.js";
+import { applyAnswerCreationTrust } from "./trust.service.js";
 
 export const createAnswerService = async ({ questionId, content, userId }) => {
   // Verify question exists
   const questions = await safeExecute(
     `
-      SELECT question_id, user_id
+      SELECT question_id, user_id, created_at
       FROM questions
       WHERE question_id = ?
       LIMIT 1
@@ -62,6 +63,17 @@ export const createAnswerService = async ({ questionId, content, userId }) => {
   }
 
   const answerId = result.insertId;
+
+  // Apply trust score events — fire-and-forget; a failure here must not
+  // roll back the answer that was already successfully inserted.
+  applyAnswerCreationTrust({
+    userId,
+    answerId,
+    questionId,
+    questionCreatedAt: question.created_at,
+  }).catch(err => {
+    console.error('[trust] Failed to apply answer creation trust events:', err.message);
+  });
 
   // Fetch created answer
   const rows = await safeExecute(
