@@ -16,7 +16,7 @@ import PostQuestion from "./pages/PostQuestion/PostQuestion";
 import QuestionDetail from "./pages/QuestionDetail/QuestionDetail";
 import Leaderboard from "./pages/Leaderboard/Leaderboard";
 import UserProfile from "./pages/UserProfile/UserProfile";
-import AdminQueue from "./pages/AdminQueue/AdminQueue";
+import Admin from "./pages/Admin/Admin";
 
 const RagDocuments = React.lazy(
   () => import("./pages/RagDocuments/RagDocuments"),
@@ -92,10 +92,10 @@ function App() {
               }
             />
             <Route
-              path="/admin/queue"
+              path="/admin"
               element={
                 <ProtectedRoute>
-                  <AdminQueue />
+                  <Admin />
                 </ProtectedRoute>
               }
             />

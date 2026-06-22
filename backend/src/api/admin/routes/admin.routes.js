@@ -8,6 +8,10 @@ import {
   approvePostController,
   removePostController,
   escalatePostController,
+  getUsersController,
+  updateUserRoleController,
+  deleteUserController,
+  getFlagHistoryController,
 } from "../controller/admin.controller.js";
 
 const router = express.Router();
@@ -36,5 +40,25 @@ router.post("/queue/:flagId/remove", flagIdValidation, removePostController);
 
 // POST /api/admin/queue/:flagId/escalate
 router.post("/queue/:flagId/escalate", flagIdValidation, escalatePostController);
+
+// GET  /api/admin/users
+router.get("/users", getUsersController);
+
+// PATCH /api/admin/users/:userId/role
+router.patch(
+  "/users/:userId/role",
+  [param("userId").isInt({ min: 1 }).toInt(), validationErrorHandler],
+  updateUserRoleController
+);
+
+// DELETE /api/admin/users/:userId
+router.delete(
+  "/users/:userId",
+  [param("userId").isInt({ min: 1 }).toInt(), validationErrorHandler],
+  deleteUserController
+);
+
+// GET /api/admin/flags
+router.get("/flags", getFlagHistoryController);
 
 export default router;

@@ -22,7 +22,7 @@ export default function Layout() {
     if (path === '/rag-documents') return 'Knowledge base';
     if (path === '/leaderboard') return 'Leaderboard';
     if (path.startsWith('/users/') && path.endsWith('/profile')) return 'Profile';
-    if (path === '/admin/queue') return 'Moderation Queue';
+    if (path === '/admin') return 'Admin';
     return 'Forum';
   };
 
@@ -43,8 +43,8 @@ export default function Layout() {
       return 'Top contributors ranked by votes received this month and all time.';
     if (path.startsWith('/users/') && path.endsWith('/profile'))
       return 'Trust score, badges, and contribution stats for this member.';
-    if (path === '/admin/queue')
-      return 'Review AI-flagged posts and take action: approve, remove, or escalate.';
+    if (path === '/admin')
+      return 'Manage the moderation queue, user roles, and flag history.';
     return '';
   };
 
@@ -57,6 +57,7 @@ export default function Layout() {
           subtitle={getSubtitle()}
           user={user}
           onLogout={logout}
+          showSearch={location.pathname === '/dashboard'}
         />
         <main className={styles.layout__main}>
           <div className={styles.layout__mainInner}>

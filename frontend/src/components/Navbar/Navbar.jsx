@@ -7,7 +7,7 @@ import styles from './Navbar.module.css';
  * Top bar: page title, debounced text search → `/dashboard?q=…`, optional AI semantic search.
  * Search state is driven by the URL on the dashboard so bookmarks and refresh keep context.
  */
-export default function Navbar({ title, subtitle, user, onLogout }) {
+export default function Navbar({ title, subtitle, user, onLogout, showSearch = false }) {
   const navigate = useNavigate();
   const location = useLocation();
   const urlParams = new URLSearchParams(location.search);
@@ -76,7 +76,7 @@ export default function Navbar({ title, subtitle, user, onLogout }) {
         ) : null}
       </div>
 
-      <form
+      {showSearch && <form
         className={`${styles.navbar__search} ${
           isSemanticActive ? styles['navbar__search--semantic'] : ''
         }`}
@@ -105,7 +105,7 @@ export default function Navbar({ title, subtitle, user, onLogout }) {
             <span className={styles['navbar__semantic-text']}>AI Search</span>
           </button>
         )}
-      </form>
+      </form>}
 
       <div className={styles.navbar__actions}>
         <div className={styles.navbar__user}>

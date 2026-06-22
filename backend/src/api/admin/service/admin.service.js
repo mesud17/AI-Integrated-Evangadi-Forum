@@ -1,5 +1,5 @@
 import { safeExecute } from "../../../../db/config.js";
-import { NotFoundError, ConflictError } from "../../../utils/errors/index.js";
+import { NotFoundError, ConflictError, BadRequestError } from "../../../utils/errors/index.js";
 
 // Maps incident count → consequence applied to user_moderation_status.
 const getEscalationForCount = (count) => {
@@ -57,6 +57,8 @@ const applyEscalation = async (authorId, escalation) => {
 // ── GET /api/admin/queue ─────────────────────────────────────────────────────
 export const getAdminQueueService = async ({ page, limit }) => {
   const offset = (page - 1) * limit;
+  const safeLimit  = Math.min(100, Math.max(1, parseInt(limit)));
+  const safeOffset = Math.max(0, parseInt(offset));
 
   const [rows, total] = await Promise.all([
     safeExecute(
@@ -80,8 +82,8 @@ export const getAdminQueueService = async ({ page, limit }) => {
        LEFT JOIN answers   a ON mf.post_type = 'answer'   AND a.answer_id   = mf.post_id
        WHERE mf.queue_status = 'pending'
        ORDER BY mf.flagged_at ASC
-       LIMIT ? OFFSET ?`,
-      [limit, offset]
+       LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+      []
     ),
     safeExecute(
       `SELECT COUNT(*) AS total FROM moderation_flags WHERE queue_status = 'pending'`,
@@ -203,5 +205,174 @@ export const escalatePostService = async ({ flagId, adminId }) => {
     message:          `User escalated. ${escalation.label}`,
     newConsequence:   escalation.status,
     authorIncidentCount: newCount,
+  };
+};
+
+// ── GET /api/admin/users ─────────────────────────────────────────────────────
+export const getUsersService = async ({ page, limit }) => {
+  const safeLimit  = Math.min(100, Math.max(1, parseInt(limit)));
+  const safeOffset = Math.max(0, (parseInt(page) - 1) * safeLimit);
+
+  const [rows, total] = await Promise.all([
+    safeExecute(
+      `SELECT
+         u.user_id      AS userId,
+         u.first_name   AS firstName,
+         u.last_name    AS lastName,
+         u.email,
+         u.role,
+         u.trust_score  AS trustScore,
+         u.created_at   AS joinedAt,
+         COALESCE(ums.status, 'active')         AS moderationStatus,
+         COALESCE(ums.incident_count, 0)        AS incidentCount,
+         ums.blocked_until                      AS blockedUntil,
+         COALESCE(ac.total_answers, 0)          AS totalAnswers
+       FROM users u
+       LEFT JOIN user_moderation_status ums ON ums.user_id = u.user_id
+       LEFT JOIN (
+         SELECT user_id, COUNT(*) AS total_answers FROM answers GROUP BY user_id
+       ) ac ON ac.user_id = u.user_id
+       WHERE COALESCE(ums.status, 'active') != 'removed'
+       ORDER BY u.created_at DESC
+       LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+      []
+    ),
+    safeExecute(
+      `SELECT COUNT(*) AS total FROM users u
+       LEFT JOIN user_moderation_status ums ON ums.user_id = u.user_id
+       WHERE COALESCE(ums.status, 'active') != 'removed'`,
+      []
+    ),
+  ]);
+
+  return {
+    data: rows.map(r => ({
+      userId:           r.userId,
+      firstName:        r.firstName,
+      lastName:         r.lastName,
+      email:            r.email,
+      role:             r.role,
+      trustScore:       r.trustScore,
+      joinedAt:         r.joinedAt,
+      moderationStatus: r.moderationStatus,
+      incidentCount:    r.incidentCount,
+      blockedUntil:     r.blockedUntil,
+      totalAnswers:     r.totalAnswers,
+    })),
+    meta: { total: Number(total[0].total), page: parseInt(page), limit: safeLimit },
+  };
+};
+
+// ── PATCH /api/admin/users/:userId/role ───────────────────────────────────────
+export const updateUserRoleService = async ({ targetUserId, role, adminId }) => {
+  if (!['user', 'admin'].includes(role)) {
+    throw new BadRequestError('Role must be "user" or "admin".', 'VALIDATION_ERROR');
+  }
+  if (Number(targetUserId) === Number(adminId)) {
+    throw new BadRequestError('You cannot change your own role.', 'VALIDATION_ERROR');
+  }
+
+  const rows = await safeExecute(
+    `SELECT user_id FROM users WHERE user_id = ? LIMIT 1`,
+    [targetUserId]
+  );
+  if (!rows.length) throw new NotFoundError('User not found.', 'USER_NOT_FOUND');
+
+  await safeExecute(`UPDATE users SET role = ? WHERE user_id = ?`, [role, targetUserId]);
+  return { message: `Role updated to "${role}".`, userId: targetUserId, role };
+};
+
+// ── DELETE /api/admin/users/:userId ──────────────────────────────────────────
+// Soft-delete: marks status as 'removed'. Preserves all forum content.
+export const deleteUserService = async ({ targetUserId, adminId }) => {
+  if (Number(targetUserId) === Number(adminId)) {
+    throw new BadRequestError('You cannot delete your own account.', 'VALIDATION_ERROR');
+  }
+
+  const rows = await safeExecute(
+    `SELECT user_id FROM users WHERE user_id = ? LIMIT 1`,
+    [targetUserId]
+  );
+  if (!rows.length) throw new NotFoundError('User not found.', 'USER_NOT_FOUND');
+
+  await safeExecute(
+    `INSERT INTO user_moderation_status (user_id, status, incident_count, updated_at)
+     VALUES (?, 'removed', 0, NOW())
+     ON DUPLICATE KEY UPDATE status = 'removed', updated_at = NOW()`,
+    [targetUserId]
+  );
+
+  return { message: 'User has been removed from the platform.', userId: targetUserId };
+};
+
+// ── GET /api/admin/flags ──────────────────────────────────────────────────────
+export const getFlagHistoryService = async ({ page, limit, status }) => {
+  const safeLimit  = Math.min(100, Math.max(1, parseInt(limit)));
+  const safeOffset = Math.max(0, (parseInt(page) - 1) * safeLimit);
+
+  const allowedStatuses = ['pending', 'approved', 'removed', 'all'];
+  const filterStatus = allowedStatuses.includes(status) ? status : 'all';
+
+  const whereClause = filterStatus === 'all' ? '' : `WHERE mf.queue_status = '${filterStatus}'`;
+
+  const [rows, total] = await Promise.all([
+    safeExecute(
+      `SELECT
+         mf.flag_id          AS flagId,
+         mf.post_type        AS postType,
+         mf.post_id          AS postId,
+         mf.category         AS category,
+         mf.moderation_score AS moderationScore,
+         mf.ai_reason        AS aiReason,
+         mf.queue_status     AS status,
+         mf.flagged_at       AS flaggedAt,
+         mf.reviewed_at      AS reviewedAt,
+         u.user_id           AS authorId,
+         u.first_name        AS authorFirstName,
+         u.last_name         AS authorLastName,
+         COALESCE(ums.incident_count, 0) AS incidentCount,
+         COALESCE(q.content, a.content)  AS content,
+         rev.first_name AS reviewerFirstName,
+         rev.last_name  AS reviewerLastName
+       FROM moderation_flags mf
+       INNER JOIN users u ON u.user_id = mf.author_id
+       LEFT JOIN user_moderation_status ums ON ums.user_id = mf.author_id
+       LEFT JOIN questions q ON mf.post_type = 'question' AND q.question_id = mf.post_id
+       LEFT JOIN answers   a ON mf.post_type = 'answer'   AND a.answer_id   = mf.post_id
+       LEFT JOIN users rev ON rev.user_id = mf.reviewed_by
+       ${whereClause}
+       ORDER BY mf.flagged_at DESC
+       LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+      []
+    ),
+    safeExecute(
+      `SELECT COUNT(*) AS total FROM moderation_flags ${whereClause}`,
+      []
+    ),
+  ]);
+
+  return {
+    data: rows.map(r => ({
+      flagId:          r.flagId,
+      postType:        r.postType,
+      postId:          r.postId,
+      category:        r.category,
+      moderationScore: Number(r.moderationScore),
+      aiReason:        r.aiReason,
+      status:          r.status,
+      flaggedAt:       r.flaggedAt,
+      reviewedAt:      r.reviewedAt,
+      content:         r.content,
+      author: {
+        userId:        r.authorId,
+        firstName:     r.authorFirstName,
+        lastName:      r.authorLastName,
+        incidentCount: r.incidentCount,
+      },
+      reviewedBy: r.reviewerFirstName
+        ? `${r.reviewerFirstName} ${r.reviewerLastName}`
+        : null,
+    })),
+    meta: { total: Number(total[0].total), page: parseInt(page), limit: safeLimit },
   };
 };

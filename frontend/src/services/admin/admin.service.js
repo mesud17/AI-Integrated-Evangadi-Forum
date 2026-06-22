@@ -57,4 +57,40 @@ async function escalatePost(postId) {
   }
 }
 
-export const adminService = { getQueue, approvePost, removePost, escalatePost };
+async function getUsers({ page = 1, limit = 20 } = {}) {
+  try {
+    const response = await apiClient.get('/api/admin/users', { params: { page, limit } });
+    return response.data;
+  } catch (error) {
+    throw handleAdminError(error);
+  }
+}
+
+async function updateUserRole(userId, role) {
+  try {
+    const response = await apiClient.patch(`/api/admin/users/${userId}/role`, { role });
+    return response.data;
+  } catch (error) {
+    throw handleAdminError(error);
+  }
+}
+
+async function getFlagHistory({ page = 1, limit = 20, status = 'all' } = {}) {
+  try {
+    const response = await apiClient.get('/api/admin/flags', { params: { page, limit, status } });
+    return response.data;
+  } catch (error) {
+    throw handleAdminError(error);
+  }
+}
+
+async function deleteUser(userId) {
+  try {
+    const response = await apiClient.delete(`/api/admin/users/${userId}`);
+    return response.data;
+  } catch (error) {
+    throw handleAdminError(error);
+  }
+}
+
+export const adminService = { getQueue, approvePost, removePost, escalatePost, getUsers, updateUserRole, deleteUser, getFlagHistory };

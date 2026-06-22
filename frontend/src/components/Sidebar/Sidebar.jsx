@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, LogOut, MessageSquare, FileText, Trophy, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, LogOut, MessageSquare, FileText, Trophy, Settings } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import styles from './Sidebar.module.css';
 
@@ -15,7 +15,7 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
 
   const navItems = user?.role === 'admin'
-    ? [...BASE_NAV_ITEMS, { icon: ShieldAlert, label: 'Admin Queue', path: '/admin/queue' }]
+    ? [...BASE_NAV_ITEMS, { icon: Settings, label: 'Admin', path: '/admin' }]
     : BASE_NAV_ITEMS;
 
   return (
