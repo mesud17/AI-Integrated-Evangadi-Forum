@@ -1,6 +1,5 @@
-import { query } from 'express-validator';
-import {validationErrorHandler} from '../../../middleware/validation-handler.js'
-
+import { query } from "express-validator";
+import { validationErrorHandler } from "../../../middleware/validation-handler.js";
 export const queryAssistantValidation = [
   query('question')
     .trim() 

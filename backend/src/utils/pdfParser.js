@@ -5,3 +5,4 @@ export const extractTextFromPDF = async (fileBuffer) => {
   const result = await pdf(fileBuffer);
   return result.text;
 };
+

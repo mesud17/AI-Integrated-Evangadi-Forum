@@ -1,29 +1,25 @@
+import fs from "fs";
+import path from "path";
 import multer from "multer";
 import { BadRequestError } from "../utils/errors/index.js";
 import fs from "fs";
 
+const UPLOAD_DIR = "uploads";
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
 const storage = multer.diskStorage({
-  // Step 1: Tell the multer where to save the incoming PDF
-
-  destination: (req, file, cb) => {
-    const uploadPath = "uploads/";
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-    cb(null, uploadPath);
-  },
-
+  destination: UPLOAD_DIR,
   filename: (req, file, cb) => {
-    // Step 2 : Ensure unique filenames to prevent overwriting
-    const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-    const uniqueName = Date.now() + "-" + sanitizedName;
+    const safeName = path.basename(file.originalname);
+    const uniqueName = `${Date.now()}-${safeName}`;
     cb(null, uniqueName);
   },
 });
+
 const uploadPdf = multer({
-  storage: storage,
+  storage,
   limits: {
-    // Limits file size to exactly 10MB as requested
+    // Limits file size to 10MB
     fileSize: 10 * 1024 * 1024,
   },
   fileFilter: (req, file, cb) => {
