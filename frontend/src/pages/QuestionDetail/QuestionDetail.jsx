@@ -318,7 +318,7 @@ export default function QuestionDetail() {
               {fitResult ? (
                 <div className={`${styles.fitPanel} ${styles[`fitPanel--${fitResult.level}`]}`}>
                   <p className={styles.fitHeading}>
-                    Answer fit: {fitResult.level} ({fitResult.score}/100)
+                    {fitResult.level} FIT
                   </p>
                   <p className={styles.fitNote}>{fitResult.note}</p>
                 </div>
