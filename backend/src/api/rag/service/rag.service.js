@@ -26,14 +26,5 @@ export const listDocumentsForUserService = async ({ userId }) => {
 
   const rows = await safeExecute(sql, [userId]);
 
-  return rows.map(document => ({
-    documentId: document.documentId,
-    title: document.title,
-    mimeType: document.mimeType,
-    byteSize: document.byteSize,
-    status: document.status,
-    errorMessage: document.errorMessage,
-    createdAt: document.createdAt,
-    updatedAt: document.updatedAt,
-  }));
+  return rows;
 };
