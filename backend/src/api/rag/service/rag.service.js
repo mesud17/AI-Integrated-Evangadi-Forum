@@ -1,14 +1,52 @@
+import { safeExecute } from '../../../../db/config.js';
+import { BadRequestError } from '../../../utils/errors/index.js';
 import { safeExecute } from "../../../../db/config.js";
+import fs from "fs/promises";
+import { extractTextFromPDF } from "../../../utils/pdfParser.js";
+import { chunkText } from "../../../utils/chunk.js";
+import { NotFoundError, BadRequestError } from "../../../utils/errors/index.js";
 import {
   generateQuestionEmbedding,
   normalizeQuestionText,
 } from "../../question/service/vector.service.js";
-import { NotFoundError, BadRequestError } from "../../../utils/errors/index.js";
+
 import {
   toNumberOrFallback,
   parseEmbedding,
   cosineSimilarity,
 } from "../../../utils/vectorUtils.js";
+import {
+  getDocumentEmbedding,
+  getQueryEmbedding,
+  answerFromRagChunksService,
+} from "../../../utils/ragGemini.js";
+
+export const listDocumentsForUserService = async ({ userId }) => {
+  if (!userId) {
+    throw new BadRequestError('User is required');
+  }
+
+  const normalizedLimit = 100;
+
+  const sql = `
+    SELECT
+      document_id AS documentId,
+      title,
+      mime_type AS mimeType,
+      byte_size AS byteSize,
+      status,
+      error_message AS errorMessage,
+      created_at AS createdAt,
+      updated_at AS updatedAt
+    FROM documents
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+    LIMIT ${normalizedLimit}
+  `;
+
+  const rows = await safeExecute(sql, [userId]);
+
+  return rows;
 
 export const searchInDocumentService = async ({
   documentId,
@@ -162,16 +200,7 @@ export const searchInDocumentService = async ({
     results,
   };
 };
-import fs from "fs/promises";
-import { extractTextFromPDF } from "../../../utils/pdfParser.js";
-import { chunkText } from "../../../utils/chunk.js";
-import { safeExecute } from "../../../../db/config.js";
-import {
-  getDocumentEmbedding,
-  getQueryEmbedding,
-  answerFromRagChunksService,
-} from "../../../utils/ragGemini.js";
-import { BadRequestError, NotFoundError } from "../../../utils/errors/index.js";
+
 
 export const createDocumentFromUploadService = async (file, userId) => {
   let documentId;

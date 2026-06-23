@@ -1,6 +1,19 @@
-import { StatusCodes } from "http-status-codes";
+import { StatusCodes } from 'http-status-codes';
+import { listDocumentsForUserService } from '../service/rag.service.js';
 import { searchInDocumentService } from "../service/rag.service.js";
+import { BadRequestError } from "../../../utils/errors/index.js";
+import { createDocumentFromUploadService, queryDocumentService } from "../service/rag.service.js";
 
+export const listDocumentsController = async (req, res, next) => {
+  try {
+    const documents = await listDocumentsForUserService({
+      userId: req.user.id,
+    });
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Documents fetched successfully.',
+      data: documents,
 export const searchInDocumentController = async (req, res, next) => {
   try {
     const { documentId } = req.params;
@@ -16,8 +29,6 @@ export const searchInDocumentController = async (req, res, next) => {
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Ranked chunk excerpts",
-import { BadRequestError } from "../../../utils/errors/index.js";
-import { createDocumentFromUploadService, queryDocumentService } from "../service/rag.service.js";
 
 export const createDocumentController = async (req, res, next) => {
   try {
