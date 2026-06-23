@@ -10,19 +10,10 @@ const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
 
 export const getDocumentEmbedding = async (text) => {
  
-  if (!ai) {
+  if (!ai || !GEMINI_API_KEY || typeof GEMINI_API_KEY !== "string") {
     throw new ServiceUnavailableError(
-      "RAG embedding service is not configured. Set GEMINI_API_KEY in backend/.env.",
-    );
-  }
-
-
-  if (!GEMINI_API_KEY || typeof GEMINI_API_KEY !== "string") {
-    const err = new Error(
       "AI features are temporarily unavailable because the Gemini API is not configured.",
     );
-    err.statusCode = 503; // 503 Service Unavailable
-    throw err;
   }
   const result = await ai.models.embedContent({
     model: EMBEDDING_MODEL,
