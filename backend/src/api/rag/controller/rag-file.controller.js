@@ -24,7 +24,7 @@ export const getDocumentFileController = async (req, res, next) => {
 
       res.setHeader("Content-Type", document.mimeType || "application/pdf");
       res.setHeader("X-Content-Type-Options", "nosniff");
-      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Cache-Control", "private, no-store");
       res.setHeader("Content-Disposition", `inline; filename="${safeFilename}"`);
 
       fileStream.pipe(res);
