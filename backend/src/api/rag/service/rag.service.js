@@ -71,30 +71,54 @@ export const searchInDocumentService = async ({
     };
   }
 
-  // Step 4 - Compute cosine similarity
-  const scored = [];
+  const heapPush = (item) => {
+    heap.push(item);
+    let i = heap.length - 1;
+    while (i > 0) {
+      const parent = Math.floor((i - 1) / 2);
+      if (heap[parent].score <= heap[i].score) break;
+      [heap[parent], heap[i]] = [heap[i], heap[parent]];
+      i = parent;
+    }
+  };
+
+  const heapPop = () => {
+    const top = heap[0];
+    const last = heap.pop();
+    if (heap.length > 0) {
+      heap[0] = last;
+      let i = 0;
+      while (true) {
+        const left = 2 * i + 1;
+        const right = 2 * i + 2;
+        let smallest = i;
+        if (left < heap.length && heap[left].score < heap[smallest].score)
+          smallest = left;
+        if (right < heap.length && heap[right].score < heap[smallest].score)
+          smallest = right;
+        if (smallest === i) break;
+        [heap[i], heap[smallest]] = [heap[smallest], heap[i]];
+        i = smallest;
+      }
+    }
+    return top;
+  };
 
   for (const row of vectorRows) {
     const vector = parseEmbedding(row.embedding);
-
-    if (!Array.isArray(vector) || vector.length === 0) {
-      continue;
-    }
+    if (!Array.isArray(vector) || vector.length === 0) continue;
 
     const score = cosineSimilarity(queryEmbedding, vector);
-    scored.push({ chunkId: row.chunkId, chunkIndex: row.chunkIndex, score });
+    if (heap.length < limit) {
+      heapPush({ chunkId: row.chunkId, chunkIndex: row.chunkIndex, score });
+    } else if (score > heap[0].score) {
+      heapPop();
+      heapPush({ chunkId: row.chunkId, chunkIndex: row.chunkIndex, score });
+    }
   }
 
-  // Step 5 - Sort and filter
-  const ranked = scored.sort((a, b) => b.score - a.score);
-  const top = ranked.slice(0, limit);
-
-  if (top.length === 0) {
-    return {
-      query: normalizedQuery,
-      results: [],
-    };
-  }
+  // Step 5 - Extract top-k in descending order
+  const top = heap.sort((a, b) => b.score - a.score);
 
   // Step 6 - Hydrate with actual text content
   const chunkIds = top.map((item) => item.chunkId);

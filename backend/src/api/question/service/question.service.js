@@ -308,11 +308,8 @@ export const getQuestionsService = async (filters = {}) => {
     LIMIT ${normalizedLimit}
   `;
 
-  const rows = await safeExecute(listSql, params);
-
-  return rows;
+  return safeExecute(listSql, params);
 };
-
 export const getSingleQuestionService = async ({ questionHash }) => {
   const normalizedAnswerLimit = 100;
 
