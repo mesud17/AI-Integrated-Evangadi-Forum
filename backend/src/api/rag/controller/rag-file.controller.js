@@ -8,7 +8,7 @@ export const getDocumentFileController = async (req, res, next) => {
 
     const document = await getDocumentFileService({ documentId, userId });
 
-    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Type", document.mimeType || "application/pdf");
     res.setHeader("X-Content-Type-Options", "nosniff");
 
     const safeFilename =

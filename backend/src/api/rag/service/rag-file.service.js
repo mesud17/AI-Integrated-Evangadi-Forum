@@ -1,6 +1,6 @@
 import fs from "fs";
 import { safeExecute } from "../../../../db/config.js";
-import { NotFoundError, BadRequestError } from "../../../utils/errors/index.js";
+import { NotFoundError } from "../../../utils/errors/index.js";
 
 export const getDocumentFileService = async ({ documentId, userId }) => {
   const sql = `
@@ -24,7 +24,7 @@ export const getDocumentFileService = async ({ documentId, userId }) => {
   try {
     await fs.promises.access(document.storagePath, fs.constants.R_OK);
   } catch {
-    throw new BadRequestError("Document file is missing from storage");
+    throw new NotFoundError("Document file not found");
   }
 
   return document;
