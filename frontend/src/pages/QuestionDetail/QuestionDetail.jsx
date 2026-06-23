@@ -43,14 +43,14 @@ export default function QuestionDetail() {
           questionService.getSingleQuestion(questionHash),
           questionService.getSimilarQuestions(questionHash, {
             k: 5,
-            threshold: 0.72,
+            threshold: 0.75,
           }),
         ]);
 
         if (!isMounted) return;
 
         setQuestion(questionData);
-        setRelatedQuestions(similarResult?.data || []);
+        setRelatedQuestions(similarResult || []);
       } catch (err) {
         if (!isMounted) return;
         setError(err.message || 'Failed to load question details.');
@@ -128,10 +128,24 @@ export default function QuestionDetail() {
   const handleShare = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-    } catch {
-      // Ignore clipboard failures.
+      alert("Link copied to clipboard!");
+    } catch (err) {
+    console.error("Failed to copy link: ", err);
+    
+    // Fallback method if navigator.clipboard fails in older/unsupported environments
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = window.location.href;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      alert("Link copied to clipboard (fallback)!");
+    } catch (fallbackErr) {
+      alert("Could not copy link automatically.");
     }
-  };
+  }
+};
 
   if (isLoading) {
     return (
@@ -181,11 +195,16 @@ export default function QuestionDetail() {
           </div>
 
           <div className={styles.questionActions}>
-            <button className={styles.secondaryAction} onClick={handleShare}>
+            <button className={styles.secondaryAction} onClick={handleShare}
+             title="Copy the page link to share this question"
+            >
+             
               <Share2 size={14} />
               Share
             </button>
-            <span className={styles.answerCountPill}>
+            <span className={styles.answerCountPill}
+            title="How many answers this question has"
+            >
               <MessageSquare size={14} />
               {answers.length} Answers
             </span>
@@ -323,7 +342,7 @@ export default function QuestionDetail() {
               >
                 <p className={styles.relatedTitle}>{item.title}</p>
                 <div className={styles.relatedMeta}>
-                  <span>{item.firstName} {item.lastName}</span>
+                  <span>{item.author?.firstName || item.firstName} {item.author?.lastName || item.lastName}</span>
                   <span>
                     {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}
                   </span>
