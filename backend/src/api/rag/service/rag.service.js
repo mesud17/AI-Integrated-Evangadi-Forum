@@ -4,6 +4,8 @@ import { chunkText } from "../../../utils/chunk.js";
 import { safeExecute } from "../../../../db/config.js";
 import { getDocumentEmbedding } from "../../../utils/ragGemini.js"; 
 
+const MAX_CHUNKS_PER_UPLOAD = 50;
+
 
 export const createDocumentFromUploadService= async (file, userId)=>{
 
@@ -56,6 +58,11 @@ export const createDocumentFromUploadService= async (file, userId)=>{
         const chunks = chunkText(text);
         if (chunks.length === 0) {
             const err = new Error("No text found in PDF");
+            err.statusCode = 400;
+            throw err;
+        }
+        if (chunks.length > MAX_CHUNKS_PER_UPLOAD) {
+            const err = new Error(`Document is too large. Maximum allowed chunks is ${MAX_CHUNKS_PER_UPLOAD}.`);
             err.statusCode = 400;
             throw err;
         }
