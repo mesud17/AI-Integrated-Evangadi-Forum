@@ -20,9 +20,9 @@ mainRouter.use("/questions", questionRoutes);
 
 mainRouter.use("/questions", answerFitRoutes);
 
+// rag routes
+mainRouter.use("/rag", ragRoutes);
 // /api/rag/documents
 mainRouter.use("/rag/documents", ragFileRoutes);
-mainRouter.use("/rag", ragRoutes);
-// RAG routes
 
 mainRouter.use("/rag", ragRoute);
