@@ -101,8 +101,6 @@ export const createDocumentFromUploadService= async (file, userId)=>{
             storage_path: file.path,    
             status: "ready",
             error_message: null,        
-            created_at: new Date().toISOString(), 
-            updated_at: new Date().toISOString(), 
             user_id: userId,
         };
 
