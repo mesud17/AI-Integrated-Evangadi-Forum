@@ -108,7 +108,6 @@ function DocumentWorkspace({ documentId, title, byteSize }) {
               "Failed to load PDF",
           );
         }
-      }
       } finally {
         if (!cancelled) {
           setPreviewLoading(false);
@@ -153,7 +152,7 @@ function DocumentWorkspace({ documentId, title, byteSize }) {
           err.response?.data?.msg ||
           "Could not get an answer.",
       );
-    }
+    } finally {
       setAskLoading(false);
     }
   };
