@@ -30,4 +30,4 @@ export const queryDocumentValidation = [
     .withMessage('Query cannot be empty'),
 
   validationErrorHandler,
-];
+];

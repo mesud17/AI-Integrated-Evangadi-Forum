@@ -1,6 +1,8 @@
 import fs from "fs";
 import multer from "multer";
 import { BadRequestError } from "../utils/errors/index.js";
+import path from "path";
+import { BadRequestError } from "../utils/errors/index.js";
 
 const storage = multer.diskStorage({
   // Step 1: Tell the multer where to save the incoming PDF
@@ -28,6 +30,27 @@ const uploadPdf = multer({
   },
   fileFilter: (req, file, cb) => {
     // step 3: Check that the file is an actual PDF
+
+const UPLOAD_DIR = "uploads";
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: UPLOAD_DIR,
+  filename: (req, file, cb) => {
+    const safeName = path.basename(file.originalname);
+    const uniqueName = `${Date.now()}-${safeName}`;
+    cb(null, uniqueName);
+  },
+});
+
+const uploadPdf = multer({
+  storage,
+  limits: {
+    // Limits file size to 10MB
+    fileSize: 10 * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+    // Basic PDF check using mimetype/extension (content is validated during processing)
     const isPdf =
       file.mimetype === "application/pdf" ||
       file.originalname.toLowerCase().endsWith(".pdf");
@@ -58,7 +81,6 @@ export const createDocumentMulterErrorHandler = (err, req, res, next) => {
     err.message = "File too large. Maximum size is 10MB.";
     return next(err);
   }
-
   // BadRequestError from fileFilter already has statusCode; default others to 400
   err.statusCode = err.statusCode || 400;
   return next(err);
