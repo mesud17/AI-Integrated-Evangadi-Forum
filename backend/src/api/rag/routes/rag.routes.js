@@ -1,54 +1,47 @@
-import express from "express";
-import multer from "multer";
-import path from "path";
-import fs from "fs";
+import { Router } from "express";
 import { authenticateUser } from "../../../middleware/authentication.js";
-import { UPLOADS_DIR } from "../service/rag.storage.js";
 import {
-  listDocuments,
-  uploadDocument,
-  deleteDocument,
-  searchDocument,
-  queryDocument,
-  getDocumentFile,
+  handlePdfUpload,
+  createDocumentMulterErrorHandler,
+} from "../../../middleware/rag.upload.config.js";
+import {
+  documentIdParamValidation,
+  searchInDocumentValidation,
+  queryDocumentValidation,
+} from "../validations/rag.validation.js";
+import {
+  getDocumentMetaController,
+  listDocumentsController,
+  searchInDocumentController,
+  createDocumentController,
+  queryDocumentController,
 } from "../controller/rag.controller.js";
 
-const router = express.Router();
+const ragRoutes = Router();
 
-// Ensure the uploads directory exists before multer tries to use it.
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-}
+ragRoutes.use(authenticateUser);
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-  filename: (_req, file, cb) => {
-    const safeOriginalName = path
-      .basename(file.originalname)
-      .replace(/[^a-zA-Z0-9._-]/g, "_");
-    cb(null, `${Date.now()}-${safeOriginalName}`);
-  },
-});
+ragRoutes.get("/documents", listDocumentsController);
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB cap
-  fileFilter: (_req, file, cb) => {
-    if (file.mimetype === "application/pdf") {
-      return cb(null, true);
-    }
-    const err = new Error("Only PDF files are allowed");
-    err.statusCode = 400;
-    cb(err);
-  },
-});
+ragRoutes.post(
+  "/documents",
+  handlePdfUpload,
+  createDocumentMulterErrorHandler,
+  createDocumentController,
+);
 
-router.use(authenticateUser);
-router.get("/documents", listDocuments);
-router.post("/documents", upload.single("file"), uploadDocument);
-router.delete("/documents/:id", deleteDocument);
-router.get("/documents/:id/search", searchDocument);
-router.post("/documents/:id/query", queryDocument);
-router.get("/documents/:id/file", getDocumentFile);
+ragRoutes.get("/documents/:documentId", documentIdParamValidation, getDocumentMetaController);
 
-export default router;
+ragRoutes.get(
+  "/documents/:documentId/search",
+  searchInDocumentValidation,
+  searchInDocumentController,
+);
+
+ragRoutes.post(
+  "/documents/:documentId/query",
+  queryDocumentValidation,
+  queryDocumentController,
+);
+
+export default ragRoutes;

@@ -1,115 +1,99 @@
-import path from "path";
-import fs from "fs/promises";
-import { StatusCodes } from "http-status-codes";
+import { StatusCodes } from 'http-status-codes';
+import { BadRequestError } from "../../../utils/errors/index.js";
 import {
-  listDocumentsForUser,
-  addDocument,
-  deleteDocumentById,
-  getDocumentById,
-} from "../service/rag.storage.js";
+  getDocumentMetaService,
+  listDocumentsForUserService,
+  searchInDocumentService,
+  createDocumentFromUploadService,
+  queryDocumentService,
+} from "../service/rag.service.js";
 
-export const listDocuments = async (req, res, next) => {
+export const getDocumentMetaController = async (req, res, next) => {
   try {
-    const docs = await listDocumentsForUser(req.user.id);
-    res.status(StatusCodes.OK).json({ documents: docs });
-  } catch (err) {
-    next(err);
+    const { documentId } = req.params;
+    const userId = req.user.id;
+    const document = await getDocumentMetaService(documentId, userId);
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Document fetched successfully.',
+      data: document,
+    });
+  } catch (error) {
+    next(error);
   }
 };
 
-export const uploadDocument = async (req, res, next) => {
+export const listDocumentsController = async (req, res, next) => {
+  try {
+    const documents = await listDocumentsForUserService({
+      userId: req.user.id,
+    });
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Documents fetched successfully.',
+      data: documents,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const searchInDocumentController = async (req, res, next) => {
+  try {
+    const { documentId } = req.params;
+    const { query, k } = req.query;
+
+    const result = await searchInDocumentService({
+      documentId: Number(documentId),
+      userId: req.user.id,
+      query,
+      k,
+    });
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Ranked chunk excerpts",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createDocumentController = async (req, res, next) => {
   try {
     if (!req.file) {
-      return res
-        .status(StatusCodes.BAD_REQUEST)
-        .json({ msg: "A PDF file is required" });
+      throw new BadRequestError("PDF file required");
     }
-    const saved = await addDocument({
-      user_id: req.user.id,
-      originalName: req.file.originalname,
-      mimeType: req.file.mimetype,
-      size: req.file.size,
-      filePath: req.file.path,
+
+    const result = await createDocumentFromUploadService(req.file, req.user.id);
+
+    res.status(StatusCodes.CREATED).json({
+      success: true,
+      message: "Document uploaded and processed.",
+      data: result,
     });
-    // Never expose the server's absolute disk path to the client.
-    const { storage_path, ...safeDocument } = saved;
-    res.status(StatusCodes.CREATED).json({ document: safeDocument });
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    next(error);
   }
 };
 
-export const deleteDocument = async (req, res, next) => {
+export const queryDocumentController = async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-    // Ownership check: ensure the doc belongs to the authenticated user
-    const doc = await getDocumentById(id);
-    if (!doc) {
-      return res
-        .status(StatusCodes.NOT_FOUND)
-        .json({ msg: "Document not found" });
-    }
-    if (doc.user_id !== req.user.id) {
-      return res
-        .status(StatusCodes.FORBIDDEN)
-        .json({ msg: "Access denied" });
-    }
-    const ok = await deleteDocumentById(id);
-    if (!ok) {
-      return res
-        .status(StatusCodes.NOT_FOUND)
-        .json({ msg: "Document not found" });
-    }
-    try {
-      await fs.unlink(doc.storage_path);
-    } catch (err) {
-      // Non-fatal: the DB row is already deleted.
-      console.warn("Failed to delete document file:", err.message);
-    }
-    res.status(StatusCodes.NO_CONTENT).send();
-  } catch (err) {
-    next(err);
-  }
-};
+    const { documentId } = req.params;
+    const { query } = req.body;
+    const userId = req.user.id;
 
-export const searchDocument = async (req, res, next) => {
-  try {
-    // Stub: full semantic search can be wired in later
-    res.status(StatusCodes.OK).json({ chunks: [] });
-  } catch (err) {
-    next(err);
-  }
-};
+    const result = await queryDocumentService({ documentId, query, userId });
 
-export const queryDocument = async (req, res, next) => {
-  try {
-    // Stub: RAG query pipeline can be wired in later
-    res
-      .status(StatusCodes.OK)
-      .json({ answer: "AI answer feature coming soon." });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const getDocumentFile = async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
-    const doc = await getDocumentById(id);
-    if (!doc) {
-      return res
-        .status(StatusCodes.NOT_FOUND)
-        .json({ msg: "Document not found" });
-    }
-    if (doc.user_id !== req.user.id) {
-      return res
-        .status(StatusCodes.FORBIDDEN)
-        .json({ msg: "Access denied" });
-    }
-    // storage_path is the absolute disk path saved by multer
-    const filePath = path.resolve(doc.storage_path);
-    res.sendFile(filePath);
-  } catch (err) {
-    next(err);
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Answer and citations",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
   }
 };
