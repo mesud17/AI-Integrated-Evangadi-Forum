@@ -135,6 +135,9 @@
   color: var(--text-secondary);
   cursor: default;
 }
+/* .answerCountPill:active {
+  transform: scale(0.97);
+} */
 
 .answersSection,
 .answerFormCard {
@@ -353,3 +356,45 @@
     align-self: flex-end;
   }
 }
+.secondaryAction {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.secondaryAction:hover {
+  background: var(--surface-hover);
+  border-color: var(--text-tertiary);
+}
+
+.postButton {
+  cursor: pointer;
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+.postButton:hover:not([disabled]) {
+  filter: brightness(0.9);
+}
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: #333;
+  color: #fff;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  font-size: var(--text-sm);
+  z-index: 1000;
+  animation: fadeInOut 3s ease forwards;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(1rem); }
+  10% { opacity: 1; transform: translateY(0); }
+  90% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(1rem); }
+}
+@media (prefers-reduced-motion: reduce) {
+   .toast {
+     animation: none;
+   }
+ }

@@ -27,6 +27,7 @@ export default function QuestionDetail() {
   const [isCheckingFit, setIsCheckingFit] = useState(false);
   const [error, setError] = useState(null);
   const [submitError, setSubmitError] = useState(null);
+  const [toastMessage, setToastMessage] = useState(''); // Toast state
 
   const isOwnQuestion =
     question && user ? Number(question.userId) === Number(user.id) : false;
@@ -38,7 +39,7 @@ export default function QuestionDetail() {
       setIsLoading(true);
       setError(null);
 
-      try {
+    try {
         const [questionData, similarResult] = await Promise.all([
           questionService.getSingleQuestion(questionHash),
           questionService.getSimilarQuestions(questionHash, {
@@ -65,6 +66,15 @@ export default function QuestionDetail() {
       isMounted = false;
     };
   }, [questionHash]);
+
+const triggerToast = msg => {
+  setToastMessage(prev => (prev === msg ? `${msg} ` : msg));
+};
+  useEffect(() => {
+     if (!toastMessage) return undefined;
+     const id = setTimeout(() => setToastMessage(''), 3000);
+     return () => clearTimeout(id);
+   }, [toastMessage]);
 
   const handleCheckFit = async () => {
     if (answerText.trim().length < 20) {
@@ -128,24 +138,23 @@ export default function QuestionDetail() {
   const handleShare = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      alert("Link copied to clipboard!");
+      triggerToast("Link copied to clipboard!");
     } catch (err) {
-    console.error("Failed to copy link: ", err);
-    
-    // Fallback method if navigator.clipboard fails in older/unsupported environments
-    try {
-      const textArea = document.createElement("textarea");
-      textArea.value = window.location.href;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textArea);
-      alert("Link copied to clipboard (fallback)!");
-    } catch (fallbackErr) {
-      alert("Could not copy link automatically.");
+      console.error("Failed to copy link: ", err);
+      
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = window.location.href;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        triggerToast("Link copied to clipboard!");
+      } catch (fallbackErr) {
+        triggerToast("Could not copy link automatically.");
+      }
     }
-  }
-};
+  };
 
   if (isLoading) {
     return (
@@ -170,6 +179,8 @@ export default function QuestionDetail() {
 
   return (
     <div className={styles.page}>
+     {toastMessage && (<div className={styles.toast} role="status" aria-live="polite">{toastMessage}</div>)}
+      
       <div className={styles.contentColumn}>
         <button className={styles.backLink} onClick={() => navigate('/dashboard')}>
           <ArrowLeft size={14} />
@@ -198,7 +209,6 @@ export default function QuestionDetail() {
             <button className={styles.secondaryAction} onClick={handleShare}
              title="Copy the page link to share this question"
             >
-             
               <Share2 size={14} />
               Share
             </button>
@@ -318,7 +328,7 @@ export default function QuestionDetail() {
               {fitResult ? (
                 <div className={`${styles.fitPanel} ${styles[`fitPanel--${fitResult.level}`]}`}>
                   <p className={styles.fitHeading}>
-                    Answer fit: {fitResult.level} ({fitResult.score}/100)
+                   {fitResult.level} FIT
                   </p>
                   <p className={styles.fitNote}>{fitResult.note}</p>
                 </div>
