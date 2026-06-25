@@ -581,6 +581,8 @@ export default function RagDocuments() {
       setSelected(created);
 
       scheduleDocumentPolling();
+      setUploadProgress(100);
+      setUploading(false);
     } catch (err) {
       setUploadError(
         err.response?.data?.message || err.message || "Upload failed",
