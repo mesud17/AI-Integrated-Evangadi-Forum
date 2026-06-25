@@ -789,7 +789,7 @@ export default function RagDocuments() {
               <p>❌ Processing failed</p>
 
               <p className={styles.small}>
-                {selected.error_message || "Unknown error"}
+                {selected.errorMessage || "Unknown error"}
               </p>
             </div>
           ) : (
