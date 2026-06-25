@@ -715,9 +715,9 @@ export default function RagDocuments() {
               <ul className={styles.list}>
                 {documents.map((doc) => (
                   <li
-                    key={doc.document_id}
+                    key={doc.documentId}
                     className={`${styles.listItem} ${
-                      selected?.document_id === doc.document_id
+                      selected?.documentId === doc.documentId
                         ? styles.selected
                         : ""
                     }`}
