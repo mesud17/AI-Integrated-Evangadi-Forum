@@ -426,7 +426,7 @@ export default function RagDocuments() {
           if (!prevSelected) return prevSelected;
 
           const updated = list.find(
-            (doc) => doc.document_id === prevSelected.document_id,
+            (doc) => doc.documentId === prevSelected.documentId,
           );
 
           if (updated && updated.status !== prevSelected.status) {
