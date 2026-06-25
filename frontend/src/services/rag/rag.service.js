@@ -3,8 +3,8 @@ import { apiClient } from "../core/api.client.js";
 export const ragService = {
   listDocuments: async () => {
     const res = await apiClient.get("/api/rag/documents");
-    return res.data.datas || [];
-  },
+    return res.data.data || [];
+  }
   uploadPdf: async (file, onProgress) => {
     const form = new FormData();
     form.append("file", file);
