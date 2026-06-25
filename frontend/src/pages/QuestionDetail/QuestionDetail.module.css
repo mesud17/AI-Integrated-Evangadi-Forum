@@ -135,10 +135,6 @@
   color: var(--text-secondary);
   cursor: default;
 }
-.answerCountPill:hover {
-  background: var(--surface-hover);
-  border-color: var(--text-tertiary);
-}
 /* .answerCountPill:active {
   transform: scale(0.97);
 } */
