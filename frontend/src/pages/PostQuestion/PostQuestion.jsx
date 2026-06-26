@@ -310,6 +310,8 @@ export default function PostQuestion() {
             onChange={(newValue) =>
               setFormData((prev) => ({ ...prev, content: newValue }))
             }
+            disabled={isSubmitting}
+            hasError={Boolean(validationErrors.content)}
           >
             <textarea
               id="question-content"
