@@ -310,6 +310,7 @@ const triggerToast = msg => {
                   textareaRef={textareaRef}
                   value={answerText}
                   onChange={setAnswerText}
+                  disabled={isPosting}
                 >
                   <textarea
                     ref={textareaRef}
