@@ -16,10 +16,15 @@ export const deleteDocumentController = async (req, res, next) => {
 
     const data = await deleteDocumentService({ documentId, userId });
 
-    return res.status(200).json({
+    return res.status(StatusCodes.OK).json({
       success: true,
       message: "Document deleted successfully.",
       data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const getDocumentMetaController = async (req, res, next) => {
   try {
