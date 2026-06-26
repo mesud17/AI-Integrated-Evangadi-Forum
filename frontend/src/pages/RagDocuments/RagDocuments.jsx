@@ -61,6 +61,8 @@ function DocumentWorkspace({ documentId, title, byteSize }) {
 
   const [askAnswer, setAskAnswer] = useState("");
 
+  const [askCitations, setAskCitations] = useState([]);
+
   const [askError, setAskError] = useState("");
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -142,10 +144,13 @@ function DocumentWorkspace({ documentId, title, byteSize }) {
 
     setAskAnswer("");
 
+    setAskCitations([]);
+
     try {
       const result = await ragService.queryDocument(documentId, askQuery);
 
       setAskAnswer(result.answer || "");
+      setAskCitations(Array.isArray(result.citations) ? result.citations : []);
     } catch (err) {
       setAskError(
         err.response?.data?.message ||
@@ -352,6 +357,28 @@ function DocumentWorkspace({ documentId, title, byteSize }) {
             {askAnswer && (
               <div className={styles.answerBox}>
                 <RagAnswerBody>{askAnswer}</RagAnswerBody>
+
+                {askCitations.length > 0 && (
+                  <div className={styles.sources}>
+                    <p className={styles.sourcesTitle}>Sources</p>
+                    {askCitations.map((c) => (
+                      <div key={c.ref} className={styles.sourceItem}>
+                        <span className={styles.sourceRef}>[{c.ref}]</span>
+                        <div className={styles.sourceBody}>
+                          <p className={styles.sourceExcerpt}>
+                            {c.excerpt || "(source text unavailable)"}
+                          </p>
+                          <span className={styles.sourceMeta}>
+                            Chunk #{c.chunkIndex}
+                            {typeof c.score === "number"
+                              ? ` · ${(c.score * 100).toFixed(0)}% match`
+                              : ""}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </section>

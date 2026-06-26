@@ -415,6 +415,56 @@
   flex: 1;
 }
 
+/* ANSWER SOURCES */
+.sources {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.sourcesTitle {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.sourceItem {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.sourceItem:last-child {
+  border-bottom: none;
+}
+
+.sourceRef {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ea580c;
+}
+
+.sourceBody {
+  min-width: 0;
+}
+
+.sourceExcerpt {
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.sourceMeta {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
 /* SEARCH RESULTS */
 .resultsList {
   display: flex;
