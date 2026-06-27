@@ -551,11 +551,6 @@
   box-shadow: var(--shadow-focus);
 }
 
-.landing__step--active {
-  border-color: var(--primary);
-  background-color: var(--primary-light);
-}
-
 .landing__stepIcon {
   flex-shrink: 0;
   width: 2.5rem;
@@ -566,10 +561,6 @@
   border-radius: var(--radius-md);
   background-color: var(--surface-container-low);
   color: var(--primary);
-}
-
-.landing__step--active .landing__stepIcon {
-  background-color: var(--surface);
 }
 
 .landing__stepCopy {

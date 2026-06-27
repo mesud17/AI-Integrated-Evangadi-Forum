@@ -24,7 +24,8 @@ import styles from './Landing.module.css';
 
 /**
  * "How it works" steps. Rendered as an interactive stepper: selecting a step
- * chip shows that step's quick guide in the panel below (step 1 active by default).
+ * chip opens that step's quick guide in the panel below. The 2×2 grid is the
+ * default view; clicking a step makes it active, and dismissing returns to the grid.
  */
 const HOW_IT_WORKS_STEPS = [
   {
@@ -74,8 +75,22 @@ export default function Landing() {
         setActiveStep(null);
       }
     };
-    document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
+    const handleKey = (e) => {
+      if (e.key === 'Escape') setActiveStep(null);
+    };
+    // pointerdown covers mouse, touch and stylus; Escape dismisses for keyboard users.
+    document.addEventListener('pointerdown', handleOutside);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutside);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [activeStep]);
+
+  // Move focus into the opened guide panel so keyboard users don't lose their place
+  // when the grid button they activated unmounts.
+  useEffect(() => {
+    if (activeStep !== null) detailRef.current?.focus();
   }, [activeStep]);
 
   // Match the detail panel's height to the 3-card stack (side-by-side layout
@@ -497,6 +512,8 @@ export default function Landing() {
                       <div
                         className={styles.landing__detail}
                         role='region'
+                        aria-label={`${HOW_IT_WORKS_STEPS[activeStep].title} — quick guide`}
+                        tabIndex={-1}
                         ref={detailRef}
                       >
                         <div className={styles.landing__detailHeader}>
