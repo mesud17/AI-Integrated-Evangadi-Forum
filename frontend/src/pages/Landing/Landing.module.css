@@ -504,12 +504,19 @@
   border-top: 1px solid var(--border);
 }
 
+/* Narrower, centered container for the steps. */
+.landing__stepsWrap {
+  max-width: 60rem;
+  margin: 0 auto;
+}
+
 .landing__steps {
   margin: 0;
   padding: 0;
   list-style: none;
   display: grid;
   gap: var(--spacing-lg);
+  align-items: start; /* a card grows when open without stretching its row-mate */
 }
 
 @media (min-width: 768px) {
@@ -518,13 +525,35 @@
   }
 }
 
+/* Selectable card (icon + title + short text). */
 .landing__step {
   display: flex;
+  align-items: flex-start;
   gap: var(--spacing-md);
+  width: 100%;
   padding: var(--spacing-lg);
+  text-align: left;
+  cursor: pointer;
   background-color: var(--background);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  transition: border-color var(--transition-fast),
+    background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.landing__step:hover {
+  border-color: var(--border-hover);
+  background-color: var(--surface-container-low);
+}
+
+.landing__step:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.landing__step--active {
+  border-color: var(--primary);
+  background-color: var(--primary-light);
 }
 
 .landing__stepIcon {
@@ -539,18 +568,157 @@
   color: var(--primary);
 }
 
+.landing__step--active .landing__stepIcon {
+  background-color: var(--surface);
+}
+
+.landing__stepCopy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .landing__stepTitle {
-  margin: 0 0 var(--spacing-xs);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
 }
 
 .landing__stepText {
-  margin: 0;
   font-size: var(--text-sm);
   line-height: 1.55;
   color: var(--text-secondary);
+}
+
+/* Open layout: 3 remaining cards stack on the left, detail fills the rest. */
+.landing__stepsOpen {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-lg);
+  align-items: start;
+  animation: landing-step-fade 0.2s ease;
+}
+
+@media (min-width: 768px) {
+  .landing__stepsOpen {
+    grid-template-columns: minmax(13rem, 18rem) 1fr;
+  }
+}
+
+.landing__sideList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.landing__sideCard {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-md);
+  text-align: left;
+  cursor: pointer;
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.landing__sideCard:hover {
+  border-color: var(--border-hover);
+  background-color: var(--surface-container-low);
+}
+
+.landing__sideCard:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.landing__sideTitle {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+/* Detail panel for the selected step. Its height is synced to the 3-card
+   stack in JS; a longer guide scrolls inside that height. */
+.landing__detail {
+  padding: var(--spacing-xl);
+  background-color: var(--surface);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow-y: auto;
+}
+
+.landing__detailHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.landing__detailIcon {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.landing__detailTitle {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.landing__detailClose {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.landing__detailClose:hover {
+  background-color: var(--surface-container-low);
+  color: var(--text-primary);
+}
+
+.landing__detailGuide {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+@keyframes landing-step-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* CTA */

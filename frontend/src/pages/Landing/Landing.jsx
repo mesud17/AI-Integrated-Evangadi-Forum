@@ -3,6 +3,7 @@
  * @description Public marketing route (`/`). Layout and copy align with in-app
  *   shell tokens (cards, borders, slate + orange). No data fetching.
  */
+import { useEffect, useRef, useState } from 'react';
 import { motion as Motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -16,13 +17,82 @@ import {
   Layers,
   FileText,
   Database,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import styles from './Landing.module.css';
 
+/**
+ * "How it works" steps. Rendered as an interactive stepper: selecting a step
+ * chip shows that step's quick guide in the panel below (step 1 active by default).
+ */
+const HOW_IT_WORKS_STEPS = [
+  {
+    icon: PenSquare,
+    title: 'Ask with context',
+    text: 'Title, environment, errors, and what you tried, so peers reproduce before they teach.',
+    guide:
+      'A good question gets answered faster. Lead with a headline title that names the symptom and stack (e.g. "React 19: state resets after navigation"). In the body, include your environment (OS, browser, versions), numbered steps to reproduce, the exact error text, and a minimal code snippet. Run the AI Draft Coach before posting to tighten it up.',
+  },
+  {
+    icon: MessageSquare,
+    title: 'Get answers',
+    text: 'Replies live in one thread with markdown and code blocks, visible to everyone in the cohort.',
+    guide:
+      'Answers appear in a single thread under your question, with full Markdown and fenced code blocks so solutions stay readable. Upvote the responses that helped — it raises the author’s trust score and surfaces the best answer for the next person. Spam or off-topic replies are automatically held for moderator review.',
+  },
+  {
+    icon: Search,
+    title: 'Search two ways',
+    text: 'Classic text search on the feed, or semantic search when you want “questions like this one.”',
+    guide:
+      'Two modes share one search bar. Keyword search filters the feed by exact words. AI Search (the Sparkles button) uses embeddings to find questions by meaning — great when you don’t know the exact terms — and returns a written AI answer alongside the matches. Every question page also lists similar questions automatically.',
+  },
+  {
+    icon: Library,
+    title: 'Own your trail',
+    text: 'Your topics list keeps authorship clear, and the Knowledge base cites your own materials.',
+    guide:
+      'Your Topics lists every thread you’ve started, so authorship stays clear. Earn a trust score and badges as your answers get upvoted, and climb the monthly and all-time leaderboards. The Knowledge Base lets you upload course PDFs and get answers with citations from your own materials (Course RAG).',
+  },
+];
+
 export default function Landing() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  // null = original 2×2 grid; a number = that step's detail is open.
+  const [activeStep, setActiveStep] = useState(null);
+  const stepsRef = useRef(null);
+  const sideListRef = useRef(null);
+  const detailRef = useRef(null);
+
+  // Clicking outside the steps area returns to the original grid.
+  useEffect(() => {
+    if (activeStep === null) return undefined;
+    const handleOutside = (e) => {
+      if (stepsRef.current && !stepsRef.current.contains(e.target)) {
+        setActiveStep(null);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [activeStep]);
+
+  // Match the detail panel's height to the 3-card stack (side-by-side layout
+  // only); a longer guide scrolls inside that height.
+  useEffect(() => {
+    if (activeStep === null) return undefined;
+    const sync = () => {
+      const detail = detailRef.current;
+      const sideList = sideListRef.current;
+      if (!detail || !sideList) return;
+      detail.style.height =
+        window.innerWidth >= 768 ? `${sideList.offsetHeight}px` : '';
+    };
+    sync();
+    window.addEventListener('resize', sync);
+    return () => window.removeEventListener('resize', sync);
+  }, [activeStep]);
 
   const scrollToHowItWorks = () => {
     document
@@ -367,64 +437,95 @@ export default function Landing() {
                   Four steps from question to searchable knowledge for the next
                   person.
                 </p>
-                <ol className={styles.landing__steps}>
-                  <li className={styles.landing__step}>
-                    <span className={styles.landing__stepIcon} aria-hidden>
-                      <PenSquare size={18} />
-                    </span>
-                    <div>
-                      <h3 className={styles.landing__stepTitle}>
-                        Ask with context
-                      </h3>
-                      <p className={styles.landing__stepText}>
-                        Title, environment, errors, and what you tried, so peers
-                        reproduce before they teach.
-                      </p>
+                <div className={styles.landing__stepsWrap} ref={stepsRef}>
+                  {activeStep === null ? (
+                    /* Default — original 2×2 grid of cards. */
+                    <div className={styles.landing__steps}>
+                      {HOW_IT_WORKS_STEPS.map((step, i) => {
+                        const StepIcon = step.icon;
+                        return (
+                          <button
+                            key={step.title}
+                            type='button'
+                            className={styles.landing__step}
+                            onClick={() => setActiveStep(i)}
+                          >
+                            <span className={styles.landing__stepIcon} aria-hidden>
+                              <StepIcon size={18} />
+                            </span>
+                            <span className={styles.landing__stepCopy}>
+                              <span className={styles.landing__stepTitle}>
+                                {step.title}
+                              </span>
+                              <span className={styles.landing__stepText}>
+                                {step.text}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
-                  </li>
-                  <li className={styles.landing__step}>
-                    <span className={styles.landing__stepIcon} aria-hidden>
-                      <MessageSquare size={18} />
-                    </span>
-                    <div>
-                      <h3 className={styles.landing__stepTitle}>Get answers</h3>
-                      <p className={styles.landing__stepText}>
-                        Replies live in one thread with markdown and code
-                        blocks, visible to everyone in the cohort.
-                      </p>
+                  ) : (
+                    /* Open — the other 3 cards stack on the left, the selected
+                       step's guide fills the space on the right. */
+                    <div className={styles.landing__stepsOpen}>
+                      <div className={styles.landing__sideList} ref={sideListRef}>
+                        {HOW_IT_WORKS_STEPS.map((step, i) => {
+                          if (i === activeStep) return null;
+                          const StepIcon = step.icon;
+                          return (
+                            <button
+                              key={step.title}
+                              type='button'
+                              className={styles.landing__sideCard}
+                              onClick={() => setActiveStep(i)}
+                            >
+                              <span
+                                className={styles.landing__stepIcon}
+                                aria-hidden
+                              >
+                                <StepIcon size={16} />
+                              </span>
+                              <span className={styles.landing__sideTitle}>
+                                {step.title}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div
+                        className={styles.landing__detail}
+                        role='region'
+                        ref={detailRef}
+                      >
+                        <div className={styles.landing__detailHeader}>
+                          <span className={styles.landing__detailIcon} aria-hidden>
+                            {(() => {
+                              const DetailIcon =
+                                HOW_IT_WORKS_STEPS[activeStep].icon;
+                              return <DetailIcon size={20} />;
+                            })()}
+                          </span>
+                          <h3 className={styles.landing__detailTitle}>
+                            {HOW_IT_WORKS_STEPS[activeStep].title}
+                          </h3>
+                          <button
+                            type='button'
+                            className={styles.landing__detailClose}
+                            onClick={() => setActiveStep(null)}
+                            aria-label='Close'
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                        <p className={styles.landing__detailGuide}>
+                          {HOW_IT_WORKS_STEPS[activeStep].guide}
+                        </p>
+                      </div>
                     </div>
-                  </li>
-                  <li className={styles.landing__step}>
-                    <span className={styles.landing__stepIcon} aria-hidden>
-                      <Search size={18} />
-                    </span>
-                    <div>
-                      <h3 className={styles.landing__stepTitle}>
-                        Search two ways
-                      </h3>
-                      <p className={styles.landing__stepText}>
-                        Classic text search on the feed, or semantic search when
-                        you want “questions like this one.”
-                      </p>
-                    </div>
-                  </li>
-                  <li className={styles.landing__step}>
-                    <span className={styles.landing__stepIcon} aria-hidden>
-                      <Library size={18} />
-                    </span>
-                    <div>
-                      <h3 className={styles.landing__stepTitle}>
-                        Own your trail
-                      </h3>
-                      <p className={styles.landing__stepText}>
-                        Your topics list keeps authorship clear. The Knowledge
-                        base hosts uploads and RAG retrieval so answers can cite
-                        your materials. See <strong>Course RAG</strong> above
-                        for the full pipeline.
-                      </p>
-                    </div>
-                  </li>
-                </ol>
+                  )}
+                </div>
               </div>
         </section>
 
