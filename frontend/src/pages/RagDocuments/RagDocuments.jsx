@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
 
+import { FileText } from "lucide-react";
+
 import styles from "./RagDocuments.module.css";
 
 import { ragService } from "../../services/rag/rag.service.js";
@@ -291,6 +293,10 @@ function DocumentWorkspace({ documentId, title, byteSize }) {
                     style={{ animationDelay: `${idx * 80}ms` }}
                   >
                     <p className={styles.resultScore}>
+                      <span className={styles.resultChunk}>
+                        Chunk #{chunk.chunkIndex}
+                      </span>
+                      {" · "}
                       Relevance: {(chunk.score || 0).toFixed(2)}
                     </p>
 
@@ -359,25 +365,16 @@ function DocumentWorkspace({ documentId, title, byteSize }) {
                 <RagAnswerBody>{askAnswer}</RagAnswerBody>
 
                 {askCitations.length > 0 && (
-                  <div className={styles.sources}>
-                    <p className={styles.sourcesTitle}>Sources</p>
-                    {askCitations.map((c) => (
-                      <div key={c.ref} className={styles.sourceItem}>
-                        <span className={styles.sourceRef}>[{c.ref}]</span>
-                        <div className={styles.sourceBody}>
-                          <p className={styles.sourceExcerpt}>
-                            {c.excerpt || "(source text unavailable)"}
-                          </p>
-                          <span className={styles.sourceMeta}>
-                            Chunk #{c.chunkIndex}
-                            {typeof c.score === "number"
-                              ? ` · ${(c.score * 100).toFixed(0)}% match`
-                              : ""}
-                          </span>
-                        </div>
-                      </div>
+                  <p className={styles.sourceRefs}>
+                    Source references:{" "}
+                    {askCitations.map((c, i) => (
+                      <span key={c.ref}>
+                        {i > 0 && " · "}
+                        <span className={styles.sourceRef}>[{c.ref}]</span> →
+                        chunk {c.chunkIndex}
+                      </span>
                     ))}
-                  </div>
+                  </p>
                 )}
               </div>
             )}
@@ -739,6 +736,14 @@ export default function RagDocuments() {
           {/* DOCUMENT LIST */}
 
           <div className={styles.listContainer}>
+            <div className={styles.listHeader}>
+              <FileText size={15} aria-hidden />
+              <span className={styles.listHeaderTitle}>Documents</span>
+              {documents.length > 0 && (
+                <span className={styles.listCount}>{documents.length}</span>
+              )}
+            </div>
+
             {docsLoading ? (
               <div className={styles.loadingMsg}>Loading documents...</div>
             ) : docsError ? (
@@ -764,6 +769,10 @@ export default function RagDocuments() {
                       className={styles.listItemBtn}
                       onClick={() => selectDocument(doc)}
                     >
+                      <span className={styles.listIcon} aria-hidden>
+                        <FileText size={18} />
+                      </span>
+
                       <div className={styles.listItemContent}>
                         <span className={styles.listTitle}>
                           {doc.title || `Document ${doc.documentId}`}
