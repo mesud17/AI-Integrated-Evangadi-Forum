@@ -20,7 +20,7 @@ export const getAdminQueueController = async (req, res, next) => {
 export const approvePostController = async (req, res, next) => {
   try {
     const result = await approvePostService({
-      flagId:  Number(req.params.postId),
+      flagId:  Number(req.params.flagId),
       adminId: req.user.id,
     });
     return res.status(200).json({ success: true, ...result });
@@ -32,7 +32,7 @@ export const approvePostController = async (req, res, next) => {
 export const removePostController = async (req, res, next) => {
   try {
     const result = await removePostService({
-      flagId:  Number(req.params.postId),
+      flagId:  Number(req.params.flagId),
       adminId: req.user.id,
     });
     return res.status(200).json({ success: true, ...result });
@@ -44,7 +44,7 @@ export const removePostController = async (req, res, next) => {
 export const escalatePostController = async (req, res, next) => {
   try {
     const result = await escalatePostService({
-      flagId:  Number(req.params.postId),
+      flagId:  Number(req.params.flagId),
       adminId: req.user.id,
     });
     return res.status(200).json({ success: true, ...result });

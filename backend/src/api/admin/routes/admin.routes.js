@@ -15,10 +15,12 @@ const router = express.Router();
 // All admin routes require a valid JWT and admin role.
 router.use(authenticate, requireAdmin);
 
-const postIdValidation = [
-  param("postId")
+// These endpoints act on a moderation_flags.flag_id (a review record), not the
+// underlying question/answer id — hence :flagId.
+const flagIdValidation = [
+  param("flagId")
     .isInt({ min: 1 })
-    .withMessage("postId must be a positive integer")
+    .withMessage("flagId must be a positive integer")
     .toInt(),
   validationErrorHandler,
 ];
@@ -26,13 +28,13 @@ const postIdValidation = [
 // GET  /api/admin/queue
 router.get("/queue", getAdminQueueController);
 
-// POST /api/admin/queue/:postId/approve
-router.post("/queue/:postId/approve", postIdValidation, approvePostController);
+// POST /api/admin/queue/:flagId/approve
+router.post("/queue/:flagId/approve", flagIdValidation, approvePostController);
 
-// POST /api/admin/queue/:postId/remove
-router.post("/queue/:postId/remove", postIdValidation, removePostController);
+// POST /api/admin/queue/:flagId/remove
+router.post("/queue/:flagId/remove", flagIdValidation, removePostController);
 
-// POST /api/admin/queue/:postId/escalate
-router.post("/queue/:postId/escalate", postIdValidation, escalatePostController);
+// POST /api/admin/queue/:flagId/escalate
+router.post("/queue/:flagId/escalate", flagIdValidation, escalatePostController);
 
 export default router;

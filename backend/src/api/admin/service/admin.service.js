@@ -6,13 +6,13 @@ const getEscalationForCount = (count) => {
   if (count <= 1) return { status: 'active',   blockedUntil: null, label: 'No restriction — admin review only.' };
   if (count === 2) return { status: 'limited',  blockedUntil: null, label: 'Posting limited until reviewed.' };
 
-  const blockDays = { 3: 1/24*24, 4: 7, 5: 14, 6: 30 }; // days
-  const hours     = { 3: 24, 4: 168, 5: 336, 6: 720 };
+  // Block durations in hours, keyed by incident count (all are whole days).
+  const hours = { 3: 24, 4: 168, 5: 336, 6: 720 };
 
   if (count <= 6) {
     const h = hours[count];
     const blockedUntil = new Date(Date.now() + h * 60 * 60 * 1000);
-    const label = `${h >= 24 ? h / 24 + '-day' : '24-hour'} block applied.`;
+    const label = `${h / 24}-day block applied.`;
     return { status: 'blocked', blockedUntil, label };
   }
 
@@ -26,7 +26,7 @@ const requirePendingFlag = async (flagId) => {
   );
 
   if (!flags.length) throw new NotFoundError("This post is not in the moderation queue.", "POST_NOT_IN_QUEUE");
-  if (flags[0].queue_status !== 'pending') throw new ConflictError("This post has already been actioned.", "POST_NOT_IN_QUEUE");
+  if (flags[0].queue_status !== 'pending') throw new ConflictError("This post has already been actioned.", "POST_ALREADY_ACTIONED");
 
   return flags[0];
 };
@@ -61,7 +61,7 @@ export const getAdminQueueService = async ({ page, limit }) => {
   const [rows, total] = await Promise.all([
     safeExecute(
       `SELECT
-         mf.flag_id          AS postId,
+         mf.flag_id          AS flagId,
          mf.post_type        AS postType,
          mf.category         AS moderationCategory,
          mf.moderation_score AS moderationScore,
@@ -91,7 +91,7 @@ export const getAdminQueueService = async ({ page, limit }) => {
 
   return {
     data: rows.map(r => ({
-      postId:             r.postId,
+      flagId:             r.flagId,
       postType:           r.postType,
       content:            r.content,
       moderationCategory: r.moderationCategory,
@@ -120,15 +120,37 @@ export const approvePostService = async ({ flagId, adminId }) => {
   const flag = await requirePendingFlag(flagId);
   await resolveFlag(flagId, 'approved', adminId);
 
-  // Clear last incident if the user has one recorded
-  await safeExecute(
-    `UPDATE user_moderation_status
-     SET incident_count   = GREATEST(incident_count - 1, 0),
-         last_incident_at = NULL,
-         updated_at       = NOW()
-     WHERE user_id = ?`,
+  // This flag was a false positive — roll the user's incident count back by one
+  // and RECOMPUTE their standing (status / blocked_until) from the new count, so
+  // clearing the incident can actually lift a block instead of leaving it stale.
+  const rows = await safeExecute(
+    `SELECT incident_count FROM user_moderation_status WHERE user_id = ? LIMIT 1`,
     [flag.author_id]
   );
+
+  if (rows.length) {
+    const newCount = Math.max(Number(rows[0].incident_count) - 1, 0);
+    const escalation = getEscalationForCount(newCount);
+
+    if (newCount === 0) {
+      // No incidents remain — clear standing and the last-incident timestamp.
+      await safeExecute(
+        `UPDATE user_moderation_status
+         SET incident_count = 0, status = ?, blocked_until = ?, last_incident_at = NULL, updated_at = NOW()
+         WHERE user_id = ?`,
+        [escalation.status, escalation.blockedUntil, flag.author_id]
+      );
+    } else {
+      // Other incidents still stand — keep last_incident_at, just recompute the
+      // consequence for the reduced count.
+      await safeExecute(
+        `UPDATE user_moderation_status
+         SET incident_count = ?, status = ?, blocked_until = ?, updated_at = NOW()
+         WHERE user_id = ?`,
+        [newCount, escalation.status, escalation.blockedUntil, flag.author_id]
+      );
+    }
+  }
 
   return { message: "Post approved and restored. Incident cleared." };
 };
