@@ -77,8 +77,18 @@ const parseGeminiResponse = (rawText, chunks) => {
 
   for (const citation of citations) {
     if (typeof citation.ref === "number" && typeof citation.chunkIndex === "number") {
-      validatedCitations.push(citation);
       const matchedChunk = chunks.find(c => c.chunkIndex === citation.chunkIndex);
+      // Attach the source text (and score) so the client can render the
+      // reference behind each [n] marker, not just the number.
+      validatedCitations.push({
+        ref: citation.ref,
+        chunkIndex: citation.chunkIndex,
+        excerpt: matchedChunk ? matchedChunk.content : null,
+        score:
+          matchedChunk && typeof matchedChunk.score === "number"
+            ? matchedChunk.score
+            : null,
+      });
       if (matchedChunk && !chunksUsed.includes(matchedChunk.chunkId)) {
         chunksUsed.push(matchedChunk.chunkId);
       }

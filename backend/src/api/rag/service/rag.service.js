@@ -6,10 +6,6 @@ import { extractTextFromPDF } from "../../../utils/pdfParser.js";
 import { chunkText } from "../../../utils/chunk.js";
 import { NotFoundError, BadRequestError } from "../../../utils/errors/index.js";
 import {
-  generateQuestionEmbedding,
-  normalizeQuestionText,
-} from "../../question/service/vector.service.js";
-import {
   toNumberOrFallback,
   parseEmbedding,
   cosineSimilarity,
@@ -177,12 +173,12 @@ export const searchInDocumentService = async ({
     );
   }
 
-  // Step 2 - Embed the search query using the same normalization pipeline as stored chunk vectors
-  const normalizedText = normalizeQuestionText({ title: normalizedQuery });
-  const { embedding: queryEmbedding } = await generateQuestionEmbedding(
-    normalizedText,
-    { taskType: "RETRIEVAL_QUERY" },
-  );
+  // Step 2 - Embed the search query with the SAME model + dimensionality as the
+  // stored chunk vectors. getQueryEmbedding uses the same embedder as the chunks
+  // (the model's default dimensionality), so cosine similarity is valid. The query
+  // and chunk embeddings MUST share a dimensionality; previously the query used a
+  // smaller-dimension embedding, so the length mismatch made every score 0.
+  const queryEmbedding = await getQueryEmbedding(normalizedQuery);
 
   // Step 3 - Fetch all chunk vectors for this document
   const vectorsSql = `
