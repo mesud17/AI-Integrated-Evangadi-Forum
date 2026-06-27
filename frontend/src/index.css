@@ -135,6 +135,9 @@
 
 html {
   scroll-behavior: smooth;
+  /* Offset anchor scrolls (e.g. "How it works") so target sections land below
+     the sticky page header instead of hidden underneath it. */
+  scroll-padding-top: 5rem;
 }
 
 body {
