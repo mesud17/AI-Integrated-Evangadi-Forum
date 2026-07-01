@@ -30,6 +30,30 @@ async function confirmEmail(token) {
 }
 
 /**
+ * Confirms email using a 6-digit OTP.
+ */
+async function verifyEmailOtp({ email, otp }) {
+  try {
+    const response = await apiClient.post('/api/auth/verify-email-otp', { email, otp });
+    return response.data?.data;
+  } catch (error) {
+    throw handleAuthError(error);
+  }
+}
+
+/**
+ * Re-sends the confirmation code (and link) for an unverified account.
+ */
+async function resendConfirmation(email) {
+  try {
+    const response = await apiClient.post('/api/auth/resend-confirmation', { email });
+    return { message: response.data?.message };
+  } catch (error) {
+    throw handleAuthError(error);
+  }
+}
+
+/**
  * Requests password reset link by email.
  */
 async function forgotPassword(email) {
@@ -38,6 +62,18 @@ async function forgotPassword(email) {
     return {
       message: response.data?.message,
     };
+  } catch (error) {
+    throw handleAuthError(error);
+  }
+}
+
+/**
+ * Verifies a password-reset OTP and returns a short-lived reset token.
+ */
+async function verifyResetOtp({ email, otp }) {
+  try {
+    const response = await apiClient.post('/api/auth/verify-reset-otp', { email, otp });
+    return response.data?.data;
   } catch (error) {
     throw handleAuthError(error);
   }
@@ -135,7 +171,10 @@ export const authService = {
   register,
   login,
   confirmEmail,
+  verifyEmailOtp,
+  resendConfirmation,
   forgotPassword,
+  verifyResetOtp,
   resetPassword,
   logout,
   getStoredToken,
