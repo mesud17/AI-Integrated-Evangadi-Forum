@@ -4,7 +4,13 @@ import axios from 'axios';
  * Configured axios instance for API communication.
  */
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5004',
+  // Priority: explicit VITE_API_BASE_URL → dev fallback (Vite on 5001, API on
+  // 5004) → production fallback '' = same-origin, for single-app deploys where
+  // Express serves the built SPA and /api from one domain (no rebuild needed
+  // per domain — this is what lets Hostinger build straight from the repo).
+  baseURL:
+    import.meta.env.VITE_API_BASE_URL ||
+    (import.meta.env.DEV ? 'http://localhost:5004' : ''),
   timeout: 300000,
   headers: {
   },

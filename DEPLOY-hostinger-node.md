@@ -204,3 +204,37 @@ more headroom — and the single-app frontend-serving change means it works ther
   30-60 min. Batch server work into one SSH session, or use ControlMaster.
 - **Global API rate limit**: the SPA fires several calls per page view and Hostinger's
   CDN can blur client IPs — the limiter backstop is 1000/15min for this reason.
+
+---
+
+## Deploying from GitHub (recommended — replaces manual zip uploads)
+
+The repo is set up for platform builds: root `npm run build` installs backend +
+frontend deps and produces `frontend/dist`; root `server.js` starts the backend,
+which serves both `/api` and the built SPA. The SPA calls the API **same-origin**
+(no `VITE_API_BASE_URL` needed) as long as the site and API share one domain.
+
+In hPanel → your Node.js app → **Settings and redeploy** (or Deployments):
+
+| Setting | Value |
+|---|---|
+| Source | **GitHub** → authorize → `Kingspark/ai-powered-disc-forum` (private) |
+| Branch | `main` |
+| Root directory | `/` (repository root) |
+| Build command | `npm run build` |
+| Startup file / start | `server.js` (or `npm start`) |
+| Node version | 20+ |
+
+Environment variables stay as configured (DB_*, JWT_SECRET, GEMINI/RESEND keys,
+FRONTEND_URL). After connecting, every push to `main` can be deployed with one
+click (or auto-deploy if enabled).
+
+> If the panel insists on `backend` as the root directory instead, keep startup
+> file `index.js` and set the build command to
+> `npm install --prefix ../frontend && npm run build --prefix ../frontend` —
+> the backend serves `../frontend/dist`.
+
+> **Domain tip:** connect your real domain to the Node app itself (app dashboard →
+> Connect domain). Then one deploy updates frontend AND backend together, and the
+> separate static copy in `public_html` becomes obsolete. Set `FRONTEND_URL` to that
+> domain for CORS.
