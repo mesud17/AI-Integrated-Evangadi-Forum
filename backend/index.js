@@ -155,9 +155,10 @@ const startServer = async () => {
       console.log(`Server running on http://localhost:${port}`);
     });
   } catch (error) {
-    console.error('Failed to connect to the database. Server not started.', error.message);
-    process.exit(1);
-  }
+  console.error('Failed to connect to the database. Server not started.');
+  console.error(error);
+  process.exit(1);
+}
 };
 
 startServer();

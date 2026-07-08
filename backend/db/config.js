@@ -6,7 +6,7 @@ import mysql from 'mysql2/promise';
 // run queries concurrently without waiting for each other.
 export const db = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT || 3306),
+  port: Number(process.env.DB_PORT || 56105),
   user: process.env.DB_USER || 'root',
   // DB_PASS is a fallback alias kept for local dev convenience.
   password: process.env.DB_PASSWORD || process.env.DB_PASS || '',

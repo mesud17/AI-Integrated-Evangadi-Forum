@@ -10,7 +10,7 @@ const apiClient = axios.create({
   // per domain — this is what lets Hostinger build straight from the repo).
   baseURL:
     import.meta.env.VITE_API_BASE_URL ||
-    (import.meta.env.DEV ? 'http://localhost:5004' : ''),
+    (import.meta.env.DEV ? 'http://localhost:3777' : ''),
   timeout: 300000,
   headers: {
   },
