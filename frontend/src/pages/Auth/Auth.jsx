@@ -274,17 +274,17 @@ export default function Auth() {
           password,
         });
 
+        // Backend now auto-verifies new accounts on signup, so there is no
+        // verification step to complete — send the user straight to login.
         setSuccessMessage(
-          `${registerResult.welcomeMessage} ${registerResult.confirmationMessage}`,
+          `${registerResult.welcomeMessage} You can now sign in.`,
         );
-        setConfirmationUrl(registerResult.confirmationUrl || null);
         setFirstName("");
         setLastName("");
         setPassword("");
-        // Keep the email so the user can enter the 6-digit code next.
         setEmail(normalizedEmail);
         setOtp("");
-        setAuthMode("verifyEmail");
+        setAuthMode("login");
       } else if (isVerifyEmail) {
         await authService.verifyEmailOtp({
           email: normalizedEmail,
