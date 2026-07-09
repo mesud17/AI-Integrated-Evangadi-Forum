@@ -62,7 +62,7 @@ app.use(helmet());
 // Set FRONTEND_URL in .env (e.g. http://localhost:5001 for dev,
 // https://your-domain.com for production).
 // ---------------------------------------------------------------------------
-const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:5001';
+const allowedOrigin = process.env.FRONTEND_URL || 'https://ai-integrated-evangadi-forum.vercel.app/';
 app.use(cors({
   origin: allowedOrigin,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
