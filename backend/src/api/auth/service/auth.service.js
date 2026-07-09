@@ -161,6 +161,12 @@ export const checkUserExists = async email => {
 /**
  * Registers a new user in the database.
  *
+ * NOTE: Email verification is temporarily bypassed — new accounts are
+ * auto-verified on signup and no confirmation email is sent. To re-enable
+ * verification later (e.g. once a Resend sending domain is verified),
+ * revert the `user_email_verifications` insert below to `is_verified = 0`
+ * and restore the token/OTP generation + sendConfirmationEmail call.
+ *
  * @param {Object} userData - The user data.
  * @param {string} userData.firstName - The first name.
  * @param {string} userData.lastName - The last name.
@@ -202,65 +208,17 @@ export const registerService = async ({
     throw error;
   }
 
+  // Email verification bypassed: mark the account as verified immediately.
   await safeExecute(
     `
-      INSERT INTO user_email_verifications (user_id, is_verified)
-      VALUES (?, 0)
-      ON DUPLICATE KEY UPDATE is_verified = VALUES(is_verified), verified_at = NULL
+      INSERT INTO user_email_verifications (user_id, is_verified, verified_at)
+      VALUES (?, 1, CURRENT_TIMESTAMP)
+      ON DUPLICATE KEY UPDATE is_verified = 1, verified_at = CURRENT_TIMESTAMP
     `,
     [result.insertId],
   );
 
-  const confirmationToken = signFlowToken(
-    {
-      purpose: 'confirm-email',
-      userId: result.insertId,
-      email: normalizedEmail,
-    },
-    process.env.EMAIL_CONFIRM_EXPIRES_IN || '24h',
-  );
-
-  const confirmationUrl = `${process.env.BACKEND_URL || process.env.FRONTEND_URL || 'http://localhost:5001'}/api/auth/confirm-email?token=${encodeURIComponent(confirmationToken)}`;
-
-  // Generate a 6-digit OTP as an alternative to clicking the link.
-  const confirmationOtp = generateOtp();
-  await storeOtp(result.insertId, OTP_PURPOSE_CONFIRM, confirmationOtp);
-
-  if (process.env.NODE_ENV !== 'production') {
-    console.info('[dev] Email confirmation link:', confirmationUrl);
-    console.info('[dev] Email confirmation OTP:', confirmationOtp);
-  }
-
-  let confirmationEmailSent = false;
-  let confirmationEmailError = '';
-
-  try {
-    await sendConfirmationEmail({
-      to: normalizedEmail,
-      firstName,
-      confirmationUrl,
-      otp: confirmationOtp,
-    });
-    confirmationEmailSent = true;
-  } catch (err) {
-    confirmationEmailError = err?.message || 'Unknown email delivery error';
-    console.error('[mailer] Failed to send confirmation email:', confirmationEmailError);
-  }
-
-  const isDev = process.env.NODE_ENV !== 'production';
-
-  let confirmationMessage =
-    'A confirmation email has been sent. Click the link inside to activate your account.';
-
-  if (!confirmationEmailSent && isDev) {
-    const isResendSandboxRestriction = confirmationEmailError.includes(
-      'You can only send testing emails to your own email address',
-    );
-
-    confirmationMessage = isResendSandboxRestriction
-      ? 'Resend test mode blocked delivery to this recipient. Verify your domain in Resend to send to external users. Use the confirmation link below for local testing.'
-      : 'Email delivery failed in development. Use the confirmation link below to verify your address.';
-  }
+  const confirmationMessage = 'Your account is ready — you can log in right away.';
 
   return {
     user: {
@@ -271,7 +229,6 @@ export const registerService = async ({
     },
     welcomeMessage: `Welcome ${firstName}! Your account was created successfully.`,
     confirmationMessage,
-    confirmationUrl: isDev ? confirmationUrl : undefined,
   };
 };
 
