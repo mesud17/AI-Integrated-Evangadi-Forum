@@ -21,7 +21,7 @@ A full-stack community forum with AI-powered features built on React + Vite (fro
 
 ## Features
 
-- **Authentication** — register, login (JWT), email confirmation, and password reset (Resend email).
+- **Authentication** — register, login (JWT), and password reset (Resend email). New accounts are currently auto-verified on signup — email confirmation is implemented but temporarily bypassed (see [Security Configuration](#security-configuration)).
 - **Q&A** — ask questions and post answers in threaded discussions with Markdown + code blocks.
 - **Semantic search & AI answers** — keyword search plus embedding-based semantic search that also returns a written AI answer grounded in the forum.
 - **AI Draft Coach & Answer-Fit** — pre-submit feedback on question drafts and a categorical **fit verdict** (Strong / Medium / Weak / Poor — relevance only) for answer drafts.
@@ -383,6 +383,8 @@ Passwords must be at least **8 characters**. This applies to both registration a
 - Password reset tokens expire after `PASSWORD_RESET_EXPIRES_IN` (default 15 minutes).
 - In **development** (`NODE_ENV` ≠ `production`), confirmation and reset links are printed to stdout for local testing. In production these logs are suppressed — links are only delivered via email.
 
+> **Email verification currently bypassed:** `registerService` marks new accounts as verified immediately and skips sending the confirmation email/OTP. This was a deliberate short-term change to unblock signups while no Resend sending domain is verified yet (Resend's sandbox mode only delivers to the account owner's own address). The underlying confirm-email/OTP infrastructure (routes, tables, `resendConfirmationOtpService`) is untouched, so verification can be re-enabled by reverting the `user_email_verifications` insert in `registerService` back to `is_verified = 0` and restoring the token/OTP generation + `sendConfirmationEmail` call — no schema changes required.
+
 ### SQL Injection
 
 All database calls go through the `safeExecute` wrapper which enforces parameterized queries via `mysql2`'s `pool.execute`. No string interpolation is used in SQL anywhere in the codebase.
@@ -397,7 +399,7 @@ All routes are prefixed with `/api`. Protected routes require `Authorization: Be
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `POST` | `/auth/register` | Public | Create account + send confirmation email |
+| `POST` | `/auth/register` | Public | Create account (currently auto-verified — see note below) |
 | `POST` | `/auth/login` | Public | Authenticate + receive JWT |
 | `POST` | `/auth/confirm-email` | Public | Verify email from token |
 | `POST` | `/auth/forgot-password` | Public | Request password reset email |
